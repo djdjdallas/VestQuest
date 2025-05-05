@@ -1,7 +1,6 @@
 "use client";
 
 import { LoginForm } from "@/components/auth/LoginForm";
-import LoginDecoration from "@/components/auth/LoginDecoration";
 import {
   LineChart,
   ChevronRightIcon,
@@ -14,11 +13,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left side - Color background with content */}
-      <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12 text-primary-foreground relative overflow-hidden">
-        {/* Add visual decoration */}
-        <LoginDecoration />
-
-        <div className="relative z-10">
+      <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12 text-primary-foreground">
+        <div>
           <div className="flex items-center gap-2">
             <LineChart className="h-8 w-8" />
             <h1 className="text-3xl font-bold">VestQuest</h1>
@@ -28,13 +24,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="space-y-16 relative z-10">
+        <div className="space-y-16">
           <div className="space-y-8">
             <h2 className="text-2xl font-semibold">Why join VestQuest?</h2>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                <div className="mt-1 bg-white/20 p-2 rounded-full">
                   <BarChart3 className="h-5 w-5" />
                 </div>
                 <div>
@@ -47,7 +43,7 @@ export default function LoginPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                <div className="mt-1 bg-white/20 p-2 rounded-full">
                   <PieChartIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -59,7 +55,7 @@ export default function LoginPage() {
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="mt-1 bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                <div className="mt-1 bg-white/20 p-2 rounded-full">
                   <DollarSignIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -72,7 +68,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="p-4 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm">
+          <div className="p-4 bg-white/10 rounded-lg border border-white/20">
             <blockquote className="text-sm italic">
               "VestQuest helped me understand the true value of my options
               package when negotiating my job offer. I was able to make an
@@ -92,7 +88,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm relative z-10">
+        <div className="flex items-center justify-between text-sm">
           <span>&copy; {new Date().getFullYear()} VestQuest, Inc.</span>
           <div className="flex gap-4">
             <a href="#" className="hover:underline">

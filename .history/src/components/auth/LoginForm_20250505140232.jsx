@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,27 +16,12 @@ import {
 import { LineChart, LockIcon, MailIcon, UserIcon } from "lucide-react";
 
 export function LoginForm({ className, ...props }) {
-  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        router.push("/dashboard");
-      }
-    };
-
-    checkUser();
-  }, [router]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -47,53 +31,39 @@ export function LoginForm({ className, ...props }) {
 
     if (isLogin) {
       // Handle login
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
         setError(error.message);
-        setLoading(false);
-      } else {
-        // Successful login - redirect to dashboard
-        router.push("/dashboard");
       }
     } else {
       // Handle signup
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
         setError(error.message);
-        setLoading(false);
       } else {
         setSuccess("Please check your email for the confirmation link!");
-        setLoading(false);
       }
     }
+
+    setLoading(false);
   };
 
   return (
-    <Card
-      className={`w-full max-w-md shadow-lg border-t-4 border-t-primary ${className}`}
-      {...props}
-    >
+    <Card className={`w-full max-w-md shadow-lg ${className}`} {...props}>
       <CardHeader className="space-y-4">
         <div className="flex items-center gap-2">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <LineChart className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <CardTitle className="text-2xl">VestQuest</CardTitle>
-            <CardDescription className="text-xs">
-              Equity Modeling Platform
-            </CardDescription>
-          </div>
+          <LineChart className="h-6 w-6 text-primary" />
+          <CardTitle className="text-2xl">VestQuest</CardTitle>
         </div>
-        <CardTitle className="text-xl pt-2">
+        <CardTitle className="text-xl">
           {isLogin ? "Welcome Back" : "Create an Account"}
         </CardTitle>
         <CardDescription>

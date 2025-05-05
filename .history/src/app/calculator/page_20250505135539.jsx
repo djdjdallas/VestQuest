@@ -20,10 +20,11 @@ import {
   SaveIcon,
   BookIcon,
 } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { useToast } from "@/components/ui/use-toast";
 import { useGrants } from "@/hooks/useGrants";
 
 export default function Calculator() {
+  const { toast } = useToast();
   const { grants, addGrant, loading } = useGrants();
   const [activeTab, setActiveTab] = useState("calculator");
 
