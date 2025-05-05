@@ -24,33 +24,45 @@ export function LoginForm({ className, ...props }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Check if user is already logged in
   useEffect(() => {
     const checkUser = async () => {
-      try {
-        setIsCheckingAuth(true);
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user) {
-          // Only redirect if we're actually on the login page
-          // This helps prevent redirection loops
-          if (window.location.pathname === "/login") {
-            router.push("/dashboard");
-          }
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-      } finally {
-        setIsCheckingAuth(false);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        // Use direct navigation instead of router for initial check
+        window.location.href = "/dashboard";
       }
     };
 
     checkUser();
   }, [router]);
+
+  // Add debug logging
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      console.log("Current session:", data.session);
+    };
+
+    checkSession();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth event:", event);
+        console.log("Session:", session);
+      }
+    );
+
+    return () => {
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  }, []);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -58,57 +70,37 @@ export function LoginForm({ className, ...props }) {
     setError(null);
     setSuccess(null);
 
-    try {
-      if (isLogin) {
-        // Handle login
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+    if (isLogin) {
+      // Handle login
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          throw error;
-        }
-
-        // Set a flag in localStorage to indicate successful auth
-        localStorage.setItem("auth_success", "true");
-
-        // Manually navigate to dashboard
-        router.push("/dashboard");
+      if (error) {
+        setError(error.message);
+        setLoading(false);
       } else {
-        // Handle signup
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        setSuccess("Please check your email for the confirmation link!");
+        // Successful login - use direct redirection instead of router
+        console.log("Login successful, redirecting...");
+        window.location.href = "/dashboard";
       }
-    } catch (error) {
-      console.error("Auth error:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+    } else {
+      // Handle signup
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      } else {
+        setSuccess("Please check your email for the confirmation link!");
+        setLoading(false);
+      }
     }
   };
-
-  // Show loading state while checking auth
-  if (isCheckingAuth) {
-    return (
-      <Card className={`w-full max-w-md shadow-lg ${className}`} {...props}>
-        <CardContent className="flex items-center justify-center p-6">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-            <p className="text-muted-foreground">Checking authentication...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card

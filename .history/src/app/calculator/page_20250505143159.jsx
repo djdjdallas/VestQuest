@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SimpleCalculator } from "@/components/calculator/SimpleCalculator";
 import { EquityForm } from "@/components/calculator/EquityForm";
-import { EquityExplainer } from "/Users/dominickhill/vestquest/src/components/calculator/EquityExplainer.jsx";
+import { EquityExplainer } from "src/components/calculator/EquityExplainer.jsx";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
