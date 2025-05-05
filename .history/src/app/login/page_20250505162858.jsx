@@ -237,10 +237,7 @@ export default function LoginPage() {
                     <label htmlFor="password" className="text-sm font-medium">
                       Password
                     </label>
-                    <Link
-                      href="/forgot-password"
-                      className="text-xs text-primary hover:underline"
-                    >
+                    <Link href="/forgot-password" className="text-xs text-primary hover:underline">
                       Forgot password?
                     </Link>
                   </div>
@@ -260,11 +257,7 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2 h-11"
-                >
+                <Button type="submit" disabled={loading} className="w-full py-2 h-11">
                   {loading ? "Processing..." : "Sign In"}
                 </Button>
               </form>
@@ -274,7 +267,7 @@ export default function LoginPage() {
                 Don't have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => (window.location.href = "/register")}
+                  onClick={() => window.location.href = "/register"}
                   className="ml-1 text-primary hover:underline font-medium"
                 >
                   Sign up
@@ -282,8 +275,8 @@ export default function LoginPage() {
               </div>
 
               <div className="text-xs text-center text-muted-foreground">
-                By continuing, you agree to VestQuest's Terms of Service and
-                Privacy Policy.
+                By continuing, you agree to VestQuest's Terms of Service and Privacy
+                Policy.
               </div>
             </CardFooter>
           </Card>
@@ -292,7 +285,7 @@ export default function LoginPage() {
           <div className="mt-8 lg:hidden space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium">Key Features</h2>
-              <a
+              
                 href="#"
                 className="text-sm text-primary flex items-center gap-1 hover:underline"
               >

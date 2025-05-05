@@ -32,31 +32,17 @@ export function LoginForm({ className, ...props }) {
     try {
       if (isLogin) {
         // Directly use Supabase auth
-        console.log("Starting login process");
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        console.log("Login response:", {
-          hasUser: !!data?.user,
-          hasError: !!error,
-        });
 
         if (error) throw error;
 
-        console.log("Successful login, redirecting to dashboard");
         // Force a HARD navigation
         window.location.href = "/dashboard";
       } else {
-        // Handle signup
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
-        setSuccess("Please check your email for the confirmation link!");
+        // Handle signup...
       }
     } catch (error) {
       console.error("Auth error:", error);

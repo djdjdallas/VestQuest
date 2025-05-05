@@ -31,21 +31,21 @@ export function LoginForm({ className, ...props }) {
 
     try {
       if (isLogin) {
-        // Directly use Supabase auth
+        // Directly use Supabase auth - bypass context
         console.log("Starting login process");
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         console.log("Login response:", {
-          hasUser: !!data?.user,
+          hasUser: !!data.user,
           hasError: !!error,
         });
 
         if (error) throw error;
 
         console.log("Successful login, redirecting to dashboard");
-        // Force a HARD navigation
+        // Force a HARD navigation using window.location.href
         window.location.href = "/dashboard";
       } else {
         // Handle signup

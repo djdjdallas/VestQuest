@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +14,45 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { LineChart, LockIcon, MailIcon } from "lucide-react";
+import { LineChart, LockIcon, MailIcon, UserIcon } from "lucide-react";
 
 export function LoginForm({ className, ...props }) {
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        setIsCheckingAuth(true);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          // Only redirect if we're actually on the login page
+          // This helps prevent redirection loops
+          if (window.location.pathname === "/login") {
+            router.push("/dashboard");
+          }
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkUser();
+  }, [router]);
+
+  // Update in src/components/auth/LoginForm.jsx
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -31,30 +61,31 @@ export function LoginForm({ className, ...props }) {
 
     try {
       if (isLogin) {
-        // Directly use Supabase auth
-        console.log("Starting login process");
+        // Handle login
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        console.log("Login response:", {
-          hasUser: !!data?.user,
-          hasError: !!error,
-        });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
-        console.log("Successful login, redirecting to dashboard");
-        // Force a HARD navigation
+        // Set a cookie instead of localStorage
+        document.cookie = "auth_success=true; path=/";
+
+        // Redirect to dashboard - use window.location for a full page reload
         window.location.href = "/dashboard";
       } else {
-        // Handle signup
+        // Handle signup - keep this part as is
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         setSuccess("Please check your email for the confirmation link!");
       }
@@ -65,6 +96,20 @@ export function LoginForm({ className, ...props }) {
       setLoading(false);
     }
   };
+
+  // Show loading state while checking auth
+  if (isCheckingAuth) {
+    return (
+      <Card className={`w-full max-w-md shadow-lg ${className}`} {...props}>
+        <CardContent className="flex items-center justify-center p-6">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">Checking authentication...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -137,7 +182,6 @@ export function LoginForm({ className, ...props }) {
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10"
                 required
-                minLength={6}
               />
             </div>
           </div>

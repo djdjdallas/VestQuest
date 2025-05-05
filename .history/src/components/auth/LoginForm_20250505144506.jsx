@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,12 +16,23 @@ import {
 import { LineChart, LockIcon, MailIcon } from "lucide-react";
 
 export function LoginForm({ className, ...props }) {
+  const { signIn, signUp, user } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    // If we have a user and we're on the login page, redirect to dashboard
+    if (user && window.location.pathname === "/login") {
+      window.location.href = "/dashboard";
+    }
+    setIsCheckingAuth(false);
+  }, [user]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -30,31 +41,30 @@ export function LoginForm({ className, ...props }) {
     setSuccess(null);
 
     try {
+      console.log("Auth process starting...");
+
       if (isLogin) {
-        // Directly use Supabase auth
-        console.log("Starting login process");
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        console.log("Login response:", {
-          hasUser: !!data?.user,
-          hasError: !!error,
-        });
+        // Handle login using context
+        const { data, error } = await signIn(email, password);
+        console.log("Auth response:", { data, error });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
-        console.log("Successful login, redirecting to dashboard");
-        // Force a HARD navigation
+        // Set a cookie for middleware to detect
+        document.cookie = "auth_success=true; path=/";
+
+        // Force a complete page reload to ensure middleware picks up the session
         window.location.href = "/dashboard";
       } else {
         // Handle signup
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+        const { data, error } = await signUp(email, password);
+        console.log("Signup response:", { data, error });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         setSuccess("Please check your email for the confirmation link!");
       }
@@ -65,6 +75,20 @@ export function LoginForm({ className, ...props }) {
       setLoading(false);
     }
   };
+
+  // Show loading state while checking auth
+  if (isCheckingAuth) {
+    return (
+      <Card className={`w-full max-w-md shadow-lg ${className}`} {...props}>
+        <CardContent className="flex items-center justify-center p-6">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+            <p className="text-muted-foreground">Checking authentication...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card
