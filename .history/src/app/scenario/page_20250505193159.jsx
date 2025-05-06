@@ -121,6 +121,21 @@ export default function ScenariosPage() {
     });
   };
 
+  // Format currency value safely
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null) return "$0.00";
+
+    try {
+      return `$${value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    } catch (e) {
+      console.error("Error formatting currency:", e);
+      return `$${parseFloat(value || 0).toFixed(2)}`;
+    }
+  };
+
   return (
     <DashboardShell>
       <DashboardHeader
@@ -174,17 +189,6 @@ export default function ScenariosPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scenarios.map((scenario) => {
               const ScenarioIcon = getScenarioIcon(scenario.exit_type);
-
-              // Helper function to safely format currency values
-              const formatCurrency = (value) => {
-                if (value === undefined || value === null) {
-                  return "$0.00";
-                }
-                return `$${parseFloat(value)
-                  .toFixed(2)
-                  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
-              };
-
               return (
                 <Card key={scenario.id}>
                   <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -208,17 +212,13 @@ export default function ScenariosPage() {
                           Share Price:
                         </span>
                         <span className="font-medium">
-                          {formatCurrency(
-                            scenario.share_price || scenario.exit_value
-                          )}
+                          {formatCurrency(scenario.exit_value)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Shares:</span>
                         <span className="font-medium">
-                          {typeof scenario.shares_exercised === "number"
-                            ? scenario.shares_exercised.toLocaleString()
-                            : "N/A"}
+                          {scenario.shares_exercised?.toLocaleString() || "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -227,7 +227,7 @@ export default function ScenariosPage() {
                         </span>
                         <span className="font-medium">
                           {formatCurrency(
-                            (scenario.share_price || scenario.exit_value || 0) *
+                            (scenario.exit_value || 0) *
                               (scenario.shares_exercised || 0)
                           )}
                         </span>
