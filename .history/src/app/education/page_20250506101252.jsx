@@ -1,14 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { EducationCard } from "@/components/education/EducationCard";
 import { GlossaryItem } from "@/components/education/GlossaryItem";
-import { ProgressiveDisclosure } from "@/components/education/ProgressiveDisclosure";
-import { InteractiveEducation } from "@/components/education/InteractiveEducation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 
 const educationContent = [
   {

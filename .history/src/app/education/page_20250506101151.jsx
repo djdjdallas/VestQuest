@@ -1,14 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { EducationCard } from "@/components/education/EducationCard";
 import { GlossaryItem } from "@/components/education/GlossaryItem";
-import { ProgressiveDisclosure } from "@/components/education/ProgressiveDisclosure";
-import { InteractiveEducation } from "@/components/education/InteractiveEducation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 
 const educationContent = [
   {
@@ -17,11 +11,6 @@ const educationContent = [
       "Stock options give you the right to buy company shares at a fixed price (strike price) in the future. They're a way for startups to compensate employees while conserving cash.",
     example:
       "If you have 1,000 options with a $1 strike price, and the company stock is worth $10, you can buy 1,000 shares for $1,000 and immediately sell them for $10,000, making a $9,000 profit (before taxes).",
-    intermediateExplanation:
-      "Options come in two main types: Incentive Stock Options (ISOs) and Non-qualified Stock Options (NSOs). Each has different tax implications and requirements.",
-    advancedDetails:
-      "ISOs offer potentially favorable tax treatment but must meet specific holding requirements and may trigger AMT. NSOs are taxed as ordinary income at exercise.",
-    relatedTerms: ["Strike Price", "Exercise", "Vesting", "AMT"],
   },
   {
     title: "Vesting Schedules",
@@ -51,13 +40,6 @@ const glossaryTerms = [
     term: "Strike Price",
     definition:
       "The fixed price at which you can buy shares when exercising your options.",
-    examples: [
-      "If your strike price is $1 per share and the current FMV is $5, you have a $4 per share 'spread'.",
-      "Strike prices are typically set to the Fair Market Value (409A valuation) at the time of grant.",
-    ],
-    technicalDetails:
-      "Strike prices must typically be at least equal to the Fair Market Value (FMV) at grant to avoid Section 409A penalties, which can include immediate taxation plus a 20% penalty.",
-    relatedTerms: ["409A Valuation", "Exercise", "Spread", "FMV"],
   },
   {
     term: "Fair Market Value (FMV)",
