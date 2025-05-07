@@ -1,12 +1,6 @@
 // src/context/EducationContext.jsx
 "use client";
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const EducationLevelContext = createContext({
   educationLevel: "beginner",
@@ -23,13 +17,12 @@ export function EducationLevelProvider({ children }) {
   const [conceptsViewed, setConceptsViewed] = useState({});
 
   // Mark a concept as viewed and count how many times
-  // Using useCallback to memoize the function
-  const markConceptViewed = useCallback((concept) => {
+  const markConceptViewed = (concept) => {
     setConceptsViewed((prev) => ({
       ...prev,
       [concept]: (prev[concept] || 0) + 1,
     }));
-  }, []);
+  };
 
   // Auto-detect education level based on user interactions
   useEffect(() => {
