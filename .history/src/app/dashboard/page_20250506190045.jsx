@@ -452,7 +452,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-          <Tabs defaultValue="overview" className=" pt-2">
+          <Tabs defaultValue="overview" className="space-y-4">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="grants">Grants</TabsTrigger>
@@ -675,10 +675,7 @@ export default function DashboardPage() {
                             <h3 className="font-medium">{scenario.name}</h3>
                             <p className="text-sm text-muted-foreground">
                               {scenario.exit_type} at $
-                              {scenario.share_price
-                                ? scenario.share_price.toFixed(2)
-                                : "0.00"}{" "}
-                              per share
+                              {scenario.share_price.toFixed(2)} per share
                             </p>
                           </div>
                           <div className="text-right">

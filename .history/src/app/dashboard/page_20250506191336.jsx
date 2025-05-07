@@ -452,7 +452,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-          <Tabs defaultValue="overview" className=" pt-2">
+          <Tabs defaultValue="overview" className="space-y-2 pt-2">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="grants">Grants</TabsTrigger>

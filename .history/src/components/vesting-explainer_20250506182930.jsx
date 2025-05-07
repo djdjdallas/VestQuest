@@ -1238,4 +1238,4 @@ const VestingExplainer = () => {
   );
 };
 
-export { VestingExplainer };
+export default VestingExplainer;

@@ -7,7 +7,7 @@ import { SimpleCalculator } from "@/components/calculator/SimpleCalculator";
 import { EquityForm } from "@/components/calculator/EquityForm";
 import { EquityExplainer } from "@/components/calculator/EquityExplainer";
 import EnhancedCalculator from "@/components/calculator/EnhancedCalculator";
-import EquityVisualizations from "@/components/EquityVisualizations";
+import EquityVisualizations from "@/components/calculator/EquityVisualizations";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {

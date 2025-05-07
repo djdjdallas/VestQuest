@@ -1237,5 +1237,3 @@ const VestingExplainer = () => {
     </div>
   );
 };
-
-export { VestingExplainer };
