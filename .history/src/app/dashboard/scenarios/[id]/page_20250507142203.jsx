@@ -220,15 +220,15 @@ export default function ScenarioDetailsPage() {
     );
   }
 
-  const ScenarioIcon = getScenarioIcon(scenario.exit_type || "Custom");
+  const ScenarioIcon = getScenarioIcon(scenario.exit_type);
 
   return (
     <DashboardShell>
       <DashboardHeader
-        heading={scenario.name || "Scenario Details"}
-        text={`${scenario.exit_type || "Exit"} scenario with ${
+        heading={scenario.name}
+        text={`${scenario.exit_type} scenario with ${
           scenario.shares_included?.toLocaleString() || "N/A"
-        } shares at ${scenario.share_price || 0}`}
+        } shares at $${scenario.share_price}`}
       >
         <div className="flex space-x-2">
           <Button
@@ -271,9 +271,7 @@ export default function ScenarioDetailsPage() {
               </div>
             </div>
             <CardDescription>
-              Information about your{" "}
-              {scenario.exit_type ? scenario.exit_type.toLowerCase() : "exit"}{" "}
-              scenario
+              Information about your {scenario.exit_type.toLowerCase()} scenario
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

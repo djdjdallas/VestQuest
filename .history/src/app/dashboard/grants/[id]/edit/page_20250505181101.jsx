@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { use } from "react"; // Add this import
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -21,9 +20,6 @@ import AuthLoading from "@/components/auth/AuthLoading";
 
 export default function EditGrantPage({ params }) {
   const router = useRouter();
-  const unwrappedParams = use(params); // Unwrap params here
-  const grantId = unwrappedParams.id; // Get the ID from unwrapped params
-
   const [grant, setGrant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,7 +42,7 @@ export default function EditGrantPage({ params }) {
         const { data, error } = await supabase
           .from("equity_grants")
           .select("*")
-          .eq("id", grantId) // Use unwrapped ID here
+          .eq("id", params.id)
           .single();
 
         if (error) throw error;
@@ -68,7 +64,7 @@ export default function EditGrantPage({ params }) {
     };
 
     fetchGrant();
-  }, [supabase, grantId, router]); // Update dependency array
+  }, [supabase, params.id, router]);
 
   const handleUpdateGrant = async (updatedData) => {
     setSaving(true);
@@ -76,7 +72,7 @@ export default function EditGrantPage({ params }) {
       const { data, error } = await supabase
         .from("equity_grants")
         .update(updatedData)
-        .eq("id", grantId) // Use unwrapped ID here
+        .eq("id", params.id)
         .select();
 
       if (error) throw error;
@@ -154,7 +150,7 @@ export default function EditGrantPage({ params }) {
                   const { error } = await supabase
                     .from("equity_grants")
                     .delete()
-                    .eq("id", grantId); // Use unwrapped ID here
+                    .eq("id", params.id);
 
                   if (error) throw error;
 

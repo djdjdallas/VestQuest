@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowLeft,
@@ -36,9 +36,8 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import AuthLoading from "@/components/auth/AuthLoading";
 import { calculateScenarioResult } from "@/utils/calculations";
 
-export default function ScenarioDetailsPage() {
+export default function ScenarioDetailsPage({ params }) {
   const router = useRouter();
-  const params = useParams(); // Using useParams hook instead of receiving params as a prop
   const [scenario, setScenario] = useState(null);
   const [grant, setGrant] = useState(null);
   const [results, setResults] = useState(null);
@@ -59,14 +58,11 @@ export default function ScenarioDetailsPage() {
           return;
         }
 
-        // Get the scenario ID from params
-        const scenarioId = params.id;
-
         // Fetch scenario
         const { data: scenarioData, error: scenarioError } = await supabase
           .from("scenarios")
           .select("*")
-          .eq("id", scenarioId)
+          .eq("id", params.id)
           .single();
 
         if (scenarioError) throw scenarioError;
@@ -220,15 +216,15 @@ export default function ScenarioDetailsPage() {
     );
   }
 
-  const ScenarioIcon = getScenarioIcon(scenario.exit_type || "Custom");
+  const ScenarioIcon = getScenarioIcon(scenario.exit_type);
 
   return (
     <DashboardShell>
       <DashboardHeader
-        heading={scenario.name || "Scenario Details"}
-        text={`${scenario.exit_type || "Exit"} scenario with ${
+        heading={scenario.name}
+        text={`${scenario.exit_type} scenario with ${
           scenario.shares_included?.toLocaleString() || "N/A"
-        } shares at ${scenario.share_price || 0}`}
+        } shares at $${scenario.share_price}`}
       >
         <div className="flex space-x-2">
           <Button
@@ -271,9 +267,7 @@ export default function ScenarioDetailsPage() {
               </div>
             </div>
             <CardDescription>
-              Information about your{" "}
-              {scenario.exit_type ? scenario.exit_type.toLowerCase() : "exit"}{" "}
-              scenario
+              Information about your {scenario.exit_type.toLowerCase()} scenario
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
