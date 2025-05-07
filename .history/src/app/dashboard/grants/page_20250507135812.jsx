@@ -34,9 +34,8 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import AuthLoading from "@/components/auth/AuthLoading";
 import { calculateVestedShares } from "@/utils/calculations";
 import EnhancedGrantsDashboard from "@/components/grants/enhanced-grants-dashboard";
-import { useRouter } from "next/navigation";
+
 export default function GrantsPage() {
-  const router = useRouter();
   const [grants, setGrants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
