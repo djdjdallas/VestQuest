@@ -4,6 +4,66 @@
  */
 
 // Constants for tax calculations
+/**
+ * Calculate the total number of vested shares
+ * @param {Object} grant - The equity grant object
+ * @returns {number} - The number of vested shares
+ */
+
+/**
+ * Calculate exercise cost for options
+ * @param {number} shares - Number of shares to exercise
+ * @param {number} strikePrice - Strike price per share
+ * @returns {number} - Total exercise cost
+ */
+export function calculateExerciseCost(shares, strikePrice) {
+  const numShares = Number(shares) || 0;
+  const numStrikePrice = Number(strikePrice) || 0;
+  return numShares * numStrikePrice;
+}
+
+/**
+ * Calculate current value of shares
+ * @param {number} shares - Number of shares
+ * @param {number} currentFMV - Current fair market value per share
+ * @returns {number} - Total value of shares
+ */
+export function calculateCurrentValue(shares, currentFMV) {
+  const numShares = Number(shares) || 0;
+  const numFMV = Number(currentFMV) || 0;
+  return numShares * numFMV;
+}
+
+/**
+ * Calculate vesting percentage
+ * @param {number} vestedShares - Number of vested shares
+ * @param {number} totalShares - Total number of shares
+ * @returns {number} - Vesting percentage (0-100)
+ */
+export function calculateVestingPercentage(vestedShares, totalShares) {
+  const numVestedShares = Number(vestedShares) || 0;
+  const numTotalShares = Number(totalShares) || 1; // Avoid division by zero
+  return (numVestedShares / numTotalShares) * 100;
+}
+
+/**
+ * Calculate potential return percentage
+ * @param {number} currentFMV - Current fair market value
+ * @param {number} strikePrice - Strike price
+ * @returns {number} - Return percentage (0-100)
+ */
+export function calculateReturnPercentage(currentFMV, strikePrice) {
+  const numFMV = Number(currentFMV) || 0;
+  const numStrikePrice = Number(strikePrice) || 1; // Avoid division by zero
+
+  // Calculate how much the share price has increased
+  const increase = numFMV - numStrikePrice;
+
+  // Calculate the percentage increase
+  const returnPercentage = (increase / numStrikePrice) * 100;
+
+  return returnPercentage;
+}
 const TAX_CONSTANTS = {
   FEDERAL_BRACKETS: {
     2024: {
@@ -125,7 +185,7 @@ const TAX_CONSTANTS = {
 };
 
 /**
- * Calculate the total number of vested shares
+ * Calculate the total value of vested shares
  * @param {Object} grant - The equity grant object
  * @returns {number} - The number of vested shares
  */
@@ -139,26 +199,6 @@ export function calculateVestedShares(grant) {
   // If no vesting start date or no shares, return 0
   if (!vestingStart || totalShares <= 0) return 0;
 
-  // Get vesting end date (with fallback to 4 years from start if missing)
-  const vestingEndInput = grant.vesting_end_date || null;
-  const vestingEnd = vestingEndInput
-    ? new Date(vestingEndInput)
-    : new Date(
-        vestingStart.getFullYear() + 4,
-        vestingStart.getMonth(),
-        vestingStart.getDate()
-      );
-
-  // Get cliff date (with fallback to 1 year from start if missing)
-  const cliffDateInput = grant.vesting_cliff_date || null;
-  const cliffDate = cliffDateInput
-    ? new Date(cliffDateInput)
-    : new Date(
-        vestingStart.getFullYear() + 1,
-        vestingStart.getMonth(),
-        vestingStart.getDate()
-      );
-
   // Calculate months since vesting start
   const monthsSinceStart =
     (now.getFullYear() - vestingStart.getFullYear()) * 12 +
@@ -167,69 +207,54 @@ export function calculateVestedShares(grant) {
   // If vesting hasn't started yet, return 0
   if (monthsSinceStart <= 0) return 0;
 
-  // If the vesting end date has passed, return total shares (fully vested)
-  if (now >= vestingEnd) return totalShares;
-
   // Handle cliff vesting
-  if (now < cliffDate) {
-    return 0; // Before cliff date, nothing is vested
+  if (grant.cliff_months && monthsSinceStart < grant.cliff_months) {
+    return 0;
   }
 
   // Calculate vested percentage based on vesting schedule
   let vestedPercentage = 0;
-  const vestingSchedule = grant.vesting_schedule || "monthly";
 
-  // Calculate total vesting period in months
-  const totalVestingMonths =
-    (vestingEnd.getFullYear() - vestingStart.getFullYear()) * 12 +
-    (vestingEnd.getMonth() - vestingStart.getMonth());
-
-  if (totalVestingMonths <= 0) return totalShares; // Safety check
-
-  if (vestingSchedule === "monthly") {
-    // Simple monthly vesting after cliff
-    if (now >= cliffDate) {
-      // Calculate cliff percentage (usually 25% for 1-year cliff)
-      const cliffMonths =
-        (cliffDate.getFullYear() - vestingStart.getFullYear()) * 12 +
-        (cliffDate.getMonth() - vestingStart.getMonth());
-
-      const cliffPercentage = cliffMonths / totalVestingMonths;
+  if (grant.vesting_schedule === "monthly") {
+    // Simple monthly vesting
+    vestedPercentage = Math.min(monthsSinceStart / grant.vesting_months, 1);
+  } else if (grant.vesting_schedule === "annual") {
+    // Annual vesting
+    const yearsSinceStart = monthsSinceStart / 12;
+    vestedPercentage = Math.min(
+      Math.floor(yearsSinceStart) / grant.vesting_years,
+      1
+    );
+  } else if (grant.vesting_schedule === "cliff_monthly") {
+    // Cliff then monthly vesting
+    if (monthsSinceStart >= grant.cliff_months) {
+      // Calculate percentage vested at cliff
+      const cliffPercentage =
+        grant.cliff_percent || grant.cliff_months / grant.vesting_months;
 
       // Calculate additional vesting after cliff
-      const monthsAfterCliff = monthsSinceStart - cliffMonths;
+      const monthsAfterCliff = monthsSinceStart - grant.cliff_months;
       const remainingPercentage = 1 - cliffPercentage;
       const monthlyRate =
-        remainingPercentage / (totalVestingMonths - cliffMonths);
+        remainingPercentage / (grant.vesting_months - grant.cliff_months);
 
       vestedPercentage = Math.min(
         cliffPercentage + monthsAfterCliff * monthlyRate,
         1
       );
     }
-  } else if (vestingSchedule === "quarterly") {
-    // Quarterly vesting
-    const quartersSinceStart = Math.floor(monthsSinceStart / 3);
-    const totalQuarters = Math.ceil(totalVestingMonths / 3);
-    vestedPercentage = Math.min(quartersSinceStart / totalQuarters, 1);
-  } else if (vestingSchedule === "yearly") {
-    // Annual vesting
-    const yearsSinceStart = Math.floor(monthsSinceStart / 12);
-    const totalYears = Math.ceil(totalVestingMonths / 12);
-    vestedPercentage = Math.min(yearsSinceStart / totalYears, 1);
   } else {
-    // Default to simple linear vesting
-    vestedPercentage = Math.min(monthsSinceStart / totalVestingMonths, 1);
+    // Default to simple proportion of vesting period
+    vestedPercentage = Math.min(
+      monthsSinceStart / (grant.vesting_months || 48),
+      1
+    );
   }
 
-  // RSUs may require liquidity event
-  if (grant.grant_type === "RSU" && grant.liquidity_event_only === true) {
-    return 0; // Double-trigger RSUs don't vest until liquidity event
-  }
-
-  // Calculate and return vested shares (ensuring it's a valid number)
+  // Calculate vested shares
   const vestedShares = Math.floor(totalShares * vestedPercentage);
-  return isNaN(vestedShares) ? 0 : vestedShares;
+
+  return vestedShares;
 }
 
 /**
@@ -239,52 +264,7 @@ export function calculateVestedShares(grant) {
  * @returns {number} - Total exercise cost
  */
 export function calculateExerciseCost(shares, strikePrice) {
-  const numShares = Number(shares) || 0;
-  const numStrikePrice = Number(strikePrice) || 0;
-  return numShares * numStrikePrice;
-}
-
-/**
- * Calculate current value of shares
- * @param {number} shares - Number of shares
- * @param {number} currentFMV - Current fair market value per share
- * @returns {number} - Total value of shares
- */
-export function calculateCurrentValue(shares, currentFMV) {
-  const numShares = Number(shares) || 0;
-  const numFMV = Number(currentFMV) || 0;
-  return numShares * numFMV;
-}
-
-/**
- * Calculate vesting percentage
- * @param {number} vestedShares - Number of vested shares
- * @param {number} totalShares - Total number of shares
- * @returns {number} - Vesting percentage (0-100)
- */
-export function calculateVestingPercentage(vestedShares, totalShares) {
-  const numVestedShares = Number(vestedShares) || 0;
-  const numTotalShares = Number(totalShares) || 1; // Avoid division by zero
-  return (numVestedShares / numTotalShares) * 100;
-}
-
-/**
- * Calculate potential return percentage
- * @param {number} currentFMV - Current fair market value
- * @param {number} strikePrice - Strike price
- * @returns {number} - Return percentage (0-100)
- */
-export function calculateReturnPercentage(currentFMV, strikePrice) {
-  const numFMV = Number(currentFMV) || 0;
-  const numStrikePrice = Number(strikePrice) || 1; // Avoid division by zero
-
-  // Calculate how much the share price has increased
-  const increase = numFMV - numStrikePrice;
-
-  // Calculate the percentage increase
-  const returnPercentage = (increase / numStrikePrice) * 100;
-
-  return returnPercentage;
+  return shares * strikePrice;
 }
 
 /**
@@ -1389,4 +1369,255 @@ function calculateTimingScore(data) {
  */
 export function calculateGrossProceeds(shares, sellPrice) {
   return shares * sellPrice;
+}
+/**
+ * Calculate the total number of vested shares
+ * @param {Object} grant - The equity grant object
+ * @returns {number} - The number of vested shares
+ */
+// Updated calculateDetailedVesting function for enhanced-grants-dashboard.js
+function calculateDetailedVesting(grant, asOfDate = new Date()) {
+  if (!grant)
+    return {
+      vestedShares: 0,
+      unvestedShares: 0,
+      vestedPercentage: 0,
+      nextVestingDate: null,
+      nextVestingShares: 0,
+    };
+
+  const now = asOfDate instanceof Date ? asOfDate : new Date(asOfDate);
+  const vestingStart = new Date(grant.vesting_start_date);
+  const vestingEnd = new Date(grant.vesting_end_date);
+  const cliffDate = grant.vesting_cliff_date
+    ? new Date(grant.vesting_cliff_date)
+    : null;
+  const totalShares = grant.shares || 0;
+
+  // Initialize result
+  const result = {
+    totalShares,
+    vestedShares: 0,
+    unvestedShares: totalShares,
+    vestedPercentage: 0,
+    isCliffPassed: cliffDate ? now >= cliffDate : true,
+    isFullyVested: now >= vestingEnd,
+    nextVestingDate: null,
+    nextVestingShares: 0,
+    timeUntilNextVesting: null,
+  };
+
+  // If invalid dates or no shares, return default result
+  if (!vestingStart || !vestingEnd || totalShares <= 0) {
+    return result;
+  }
+
+  // If fully vested
+  if (now >= vestingEnd) {
+    result.vestedShares = totalShares;
+    result.unvestedShares = 0;
+    result.vestedPercentage = 100;
+    return result;
+  }
+
+  // If before vesting start, no shares are vested
+  if (now < vestingStart) {
+    result.nextVestingDate = cliffDate || vestingStart;
+    // For cliff, typically 25% vests
+    const cliffPercentage = cliffDate ? 0.25 : 0;
+    result.nextVestingShares = Math.floor(totalShares * cliffPercentage);
+    result.timeUntilNextVesting = Math.ceil(
+      (result.nextVestingDate - now) / (1000 * 60 * 60 * 24)
+    );
+    return result;
+  }
+
+  // If cliff exists and we're before cliff date, no shares are vested
+  if (cliffDate && now < cliffDate) {
+    result.nextVestingDate = cliffDate;
+    // Typical cliff vesting amount (can be customized based on grant details)
+    result.nextVestingShares = Math.floor(totalShares * 0.25);
+    result.timeUntilNextVesting = Math.ceil(
+      (cliffDate - now) / (1000 * 60 * 60 * 24)
+    );
+    return result;
+  }
+
+  // Determine vesting schedule type and calculate accordingly
+  const vestingSchedule = grant.vesting_schedule || "monthly";
+  const totalVestingDays = (vestingEnd - vestingStart) / (1000 * 60 * 60 * 24);
+  const elapsedDays = Math.min(
+    totalVestingDays,
+    (now - vestingStart) / (1000 * 60 * 60 * 24)
+  );
+
+  // Calculate interval days based on vesting schedule
+  let intervalDays;
+  switch (vestingSchedule) {
+    case "yearly":
+      intervalDays = 365;
+      break;
+    case "quarterly":
+      intervalDays = 91.25; // Approximately a quarter
+      break;
+    case "monthly":
+    default:
+      intervalDays = 30.44; // Average month length
+      break;
+  }
+
+  // Calculate vested shares
+  let vestedShares = 0;
+
+  // Standard vesting with cliff
+  if (cliffDate && now >= cliffDate) {
+    // Calculate cliff amount (typically 25% for 1-year cliff)
+    const cliffPercentage = 0.25;
+    const cliffShares = Math.floor(totalShares * cliffPercentage);
+
+    // Calculate additional vesting after cliff
+    const daysAfterCliff = (now - cliffDate) / (1000 * 60 * 60 * 24);
+    const remainingShares = totalShares - cliffShares;
+    const remainingDays = (vestingEnd - cliffDate) / (1000 * 60 * 60 * 24);
+
+    const additionalVested = Math.floor(
+      (daysAfterCliff / remainingDays) * remainingShares
+    );
+    vestedShares = Math.min(cliffShares + additionalVested, totalShares);
+  } else {
+    // Simple linear vesting
+    vestedShares = Math.floor((elapsedDays / totalVestingDays) * totalShares);
+  }
+
+  // RSUs that require liquidity event
+  if (grant.grant_type === "RSU" && grant.liquidity_event_only) {
+    vestedShares = 0;
+  }
+
+  // Calculate next vesting date and amount
+  let nextDate = null;
+  let nextShares = 0;
+
+  if (vestedShares < totalShares) {
+    if (vestingSchedule === "monthly") {
+      nextDate = new Date(now);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      // Adjust day to match original grant's day if possible
+      const originalDay = vestingStart.getDate();
+      const maxDaysInMonth = new Date(
+        nextDate.getFullYear(),
+        nextDate.getMonth() + 1,
+        0
+      ).getDate();
+      nextDate.setDate(Math.min(originalDay, maxDaysInMonth));
+
+      const monthlyAmount = totalShares / 48; // Typical 48-month vesting
+      nextShares = Math.min(
+        Math.floor(monthlyAmount),
+        totalShares - vestedShares
+      );
+    } else if (vestingSchedule === "quarterly") {
+      nextDate = new Date(now);
+      nextDate.setMonth(nextDate.getMonth() + 3);
+      // Adjust day to match original grant's day if possible
+      const originalDay = vestingStart.getDate();
+      const maxDaysInMonth = new Date(
+        nextDate.getFullYear(),
+        nextDate.getMonth() + 1,
+        0
+      ).getDate();
+      nextDate.setDate(Math.min(originalDay, maxDaysInMonth));
+
+      const quarterlyAmount = totalShares / 16; // Typical 16-quarter vesting
+      nextShares = Math.min(
+        Math.floor(quarterlyAmount),
+        totalShares - vestedShares
+      );
+    } else {
+      nextDate = new Date(now);
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      // Keep exact date for yearly vesting
+      nextDate.setMonth(vestingStart.getMonth());
+      nextDate.setDate(vestingStart.getDate());
+
+      const yearlyAmount = totalShares / 4; // Typical 4-year vesting
+      nextShares = Math.min(
+        Math.floor(yearlyAmount),
+        totalShares - vestedShares
+      );
+    }
+
+    // If next date is beyond vesting end, use vesting end
+    if (nextDate > vestingEnd) {
+      nextDate = new Date(vestingEnd);
+      nextShares = totalShares - vestedShares;
+    }
+  }
+
+  // Update result
+  result.vestedShares = vestedShares;
+  result.unvestedShares = totalShares - vestedShares;
+  result.vestedPercentage = (vestedShares / totalShares) * 100;
+  result.nextVestingDate = nextDate;
+  result.nextVestingShares = nextShares;
+  result.timeUntilNextVesting = nextDate
+    ? Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24))
+    : null;
+
+  return result;
+}
+
+/**
+ * Calculate exercise cost for options
+ * @param {number} shares - Number of shares to exercise
+ * @param {number} strikePrice - Strike price per share
+ * @returns {number} - Total exercise cost
+ */
+export function calculateExerciseCost(shares, strikePrice) {
+  const numShares = Number(shares) || 0;
+  const numStrikePrice = Number(strikePrice) || 0;
+  return numShares * numStrikePrice;
+}
+
+/**
+ * Calculate current value of shares
+ * @param {number} shares - Number of shares
+ * @param {number} currentFMV - Current fair market value per share
+ * @returns {number} - Total value of shares
+ */
+export function calculateCurrentValue(shares, currentFMV) {
+  const numShares = Number(shares) || 0;
+  const numFMV = Number(currentFMV) || 0;
+  return numShares * numFMV;
+}
+
+/**
+ * Calculate vesting percentage
+ * @param {number} vestedShares - Number of vested shares
+ * @param {number} totalShares - Total number of shares
+ * @returns {number} - Vesting percentage (0-100)
+ */
+export function calculateVestingPercentage(vestedShares, totalShares) {
+  const numVestedShares = Number(vestedShares) || 0;
+  const numTotalShares = Number(totalShares) || 1; // Avoid division by zero
+  return (numVestedShares / numTotalShares) * 100;
+}
+
+/**
+ * Calculate potential return percentage
+ * @param {number} currentFMV - Current fair market value
+ * @param {number} strikePrice - Strike price
+ * @returns {number} - Return percentage (0-100)
+ */
+export function calculateReturnPercentage(currentFMV, strikePrice) {
+  const numFMV = Number(currentFMV) || 0;
+  const numStrikePrice = Number(strikePrice) || 1; // Avoid division by zero
+
+  // Calculate how much the share price has increased
+  const increase = numFMV - numStrikePrice;
+
+  // Calculate the percentage increase
+  const returnPercentage = (increase / numStrikePrice) * 100;
+
+  return returnPercentage;
 }

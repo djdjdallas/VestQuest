@@ -4,126 +4,6 @@
  */
 
 // Constants for tax calculations
-const TAX_CONSTANTS = {
-  FEDERAL_BRACKETS: {
-    2024: {
-      single: [
-        { min: 0, max: 11000, rate: 0.1 },
-        { min: 11000, max: 44725, rate: 0.12 },
-        { min: 44725, max: 95375, rate: 0.22 },
-        { min: 95375, max: 182100, rate: 0.24 },
-        { min: 182100, max: 231250, rate: 0.32 },
-        { min: 231250, max: 578125, rate: 0.35 },
-        { min: 578125, max: Infinity, rate: 0.37 },
-      ],
-      married_joint: [
-        { min: 0, max: 22000, rate: 0.1 },
-        { min: 22000, max: 89450, rate: 0.12 },
-        { min: 89450, max: 190750, rate: 0.22 },
-        { min: 190750, max: 364200, rate: 0.24 },
-        { min: 364200, max: 462500, rate: 0.32 },
-        { min: 462500, max: 693750, rate: 0.35 },
-        { min: 693750, max: Infinity, rate: 0.37 },
-      ],
-      married_separate: [
-        { min: 0, max: 11000, rate: 0.1 },
-        { min: 11000, max: 44725, rate: 0.12 },
-        { min: 44725, max: 95375, rate: 0.22 },
-        { min: 95375, max: 182100, rate: 0.24 },
-        { min: 182100, max: 231250, rate: 0.32 },
-        { min: 231250, max: 346875, rate: 0.35 },
-        { min: 346875, max: Infinity, rate: 0.37 },
-      ],
-      head_household: [
-        { min: 0, max: 15700, rate: 0.1 },
-        { min: 15700, max: 59850, rate: 0.12 },
-        { min: 59850, max: 95350, rate: 0.22 },
-        { min: 95350, max: 182100, rate: 0.24 },
-        { min: 182100, max: 231250, rate: 0.32 },
-        { min: 231250, max: 578100, rate: 0.35 },
-        { min: 578100, max: Infinity, rate: 0.37 },
-      ],
-    },
-    2025: {
-      // Projections for 2025 (adjust as needed)
-      single: [
-        { min: 0, max: 11400, rate: 0.1 },
-        { min: 11400, max: 46200, rate: 0.12 },
-        { min: 46200, max: 98500, rate: 0.22 },
-        { min: 98500, max: 187900, rate: 0.24 },
-        { min: 187900, max: 238500, rate: 0.32 },
-        { min: 238500, max: 596700, rate: 0.35 },
-        { min: 596700, max: Infinity, rate: 0.37 },
-      ],
-      // Additional brackets for other filing statuses...
-    },
-  },
-
-  CAPITAL_GAINS_BRACKETS: {
-    2024: {
-      single: [
-        { min: 0, max: 44625, rate: 0.0 },
-        { min: 44625, max: 492300, rate: 0.15 },
-        { min: 492300, max: Infinity, rate: 0.2 },
-      ],
-      married_joint: [
-        { min: 0, max: 89250, rate: 0.0 },
-        { min: 89250, max: 553850, rate: 0.15 },
-        { min: 553850, max: Infinity, rate: 0.2 },
-      ],
-      // Additional brackets for other filing statuses...
-    },
-  },
-
-  AMT: {
-    2024: {
-      exemption: {
-        single: 81300,
-        married_joint: 126500,
-        married_separate: 63250,
-      },
-      exemption_phaseout: {
-        single: 578150,
-        married_joint: 1156300,
-        married_separate: 578150,
-      },
-      rates: [
-        { min: 0, max: 220700, rate: 0.26 },
-        { min: 220700, max: Infinity, rate: 0.28 },
-      ],
-    },
-  },
-
-  STATE_TAX_RATES: {
-    California: 0.133,
-    "New York": 0.107,
-    Texas: 0,
-    Florida: 0,
-    Washington: 0,
-    Massachusetts: 0.09,
-    Illinois: 0.0495,
-    // Add more states as needed...
-  },
-
-  MEDICARE_SURTAX_THRESHOLD: {
-    single: 200000,
-    married_joint: 250000,
-    married_separate: 125000,
-    head_household: 200000,
-  },
-
-  MEDICARE_SURTAX_RATE: 0.038,
-
-  MEDICARE_BASE_RATE: 0.0145,
-
-  SOCIAL_SECURITY_RATE: 0.062,
-
-  SOCIAL_SECURITY_WAGE_BASE: {
-    2024: 168600,
-    2025: 175500, // Projected
-  },
-};
-
 /**
  * Calculate the total number of vested shares
  * @param {Object} grant - The equity grant object
@@ -133,11 +13,13 @@ export function calculateVestedShares(grant) {
   if (!grant) return 0;
 
   const now = new Date();
-  const vestingStart = new Date(grant.vesting_start_date);
-  const totalShares = grant.shares || 0;
+  const vestingStart = grant.vesting_start_date
+    ? new Date(grant.vesting_start_date)
+    : null;
+  const totalShares = grant.shares ? Number(grant.shares) : 0;
 
-  // If no vesting start date or no shares, return 0
-  if (!vestingStart || totalShares <= 0) return 0;
+  // Data validation: If no valid vesting start date or no shares, return 0
+  if (!vestingStart || !totalShares || totalShares <= 0) return 0;
 
   // Get vesting end date (with fallback to 4 years from start if missing)
   const vestingEndInput = grant.vesting_end_date || null;
@@ -285,6 +167,208 @@ export function calculateReturnPercentage(currentFMV, strikePrice) {
   const returnPercentage = (increase / numStrikePrice) * 100;
 
   return returnPercentage;
+}
+const TAX_CONSTANTS = {
+  FEDERAL_BRACKETS: {
+    2024: {
+      single: [
+        { min: 0, max: 11000, rate: 0.1 },
+        { min: 11000, max: 44725, rate: 0.12 },
+        { min: 44725, max: 95375, rate: 0.22 },
+        { min: 95375, max: 182100, rate: 0.24 },
+        { min: 182100, max: 231250, rate: 0.32 },
+        { min: 231250, max: 578125, rate: 0.35 },
+        { min: 578125, max: Infinity, rate: 0.37 },
+      ],
+      married_joint: [
+        { min: 0, max: 22000, rate: 0.1 },
+        { min: 22000, max: 89450, rate: 0.12 },
+        { min: 89450, max: 190750, rate: 0.22 },
+        { min: 190750, max: 364200, rate: 0.24 },
+        { min: 364200, max: 462500, rate: 0.32 },
+        { min: 462500, max: 693750, rate: 0.35 },
+        { min: 693750, max: Infinity, rate: 0.37 },
+      ],
+      married_separate: [
+        { min: 0, max: 11000, rate: 0.1 },
+        { min: 11000, max: 44725, rate: 0.12 },
+        { min: 44725, max: 95375, rate: 0.22 },
+        { min: 95375, max: 182100, rate: 0.24 },
+        { min: 182100, max: 231250, rate: 0.32 },
+        { min: 231250, max: 346875, rate: 0.35 },
+        { min: 346875, max: Infinity, rate: 0.37 },
+      ],
+      head_household: [
+        { min: 0, max: 15700, rate: 0.1 },
+        { min: 15700, max: 59850, rate: 0.12 },
+        { min: 59850, max: 95350, rate: 0.22 },
+        { min: 95350, max: 182100, rate: 0.24 },
+        { min: 182100, max: 231250, rate: 0.32 },
+        { min: 231250, max: 578100, rate: 0.35 },
+        { min: 578100, max: Infinity, rate: 0.37 },
+      ],
+    },
+    2025: {
+      // Projections for 2025 (adjust as needed)
+      single: [
+        { min: 0, max: 11400, rate: 0.1 },
+        { min: 11400, max: 46200, rate: 0.12 },
+        { min: 46200, max: 98500, rate: 0.22 },
+        { min: 98500, max: 187900, rate: 0.24 },
+        { min: 187900, max: 238500, rate: 0.32 },
+        { min: 238500, max: 596700, rate: 0.35 },
+        { min: 596700, max: Infinity, rate: 0.37 },
+      ],
+      // Additional brackets for other filing statuses...
+    },
+  },
+
+  CAPITAL_GAINS_BRACKETS: {
+    2024: {
+      single: [
+        { min: 0, max: 44625, rate: 0.0 },
+        { min: 44625, max: 492300, rate: 0.15 },
+        { min: 492300, max: Infinity, rate: 0.2 },
+      ],
+      married_joint: [
+        { min: 0, max: 89250, rate: 0.0 },
+        { min: 89250, max: 553850, rate: 0.15 },
+        { min: 553850, max: Infinity, rate: 0.2 },
+      ],
+      // Additional brackets for other filing statuses...
+    },
+  },
+
+  AMT: {
+    2024: {
+      exemption: {
+        single: 81300,
+        married_joint: 126500,
+        married_separate: 63250,
+      },
+      exemption_phaseout: {
+        single: 578150,
+        married_joint: 1156300,
+        married_separate: 578150,
+      },
+      rates: [
+        { min: 0, max: 220700, rate: 0.26 },
+        { min: 220700, max: Infinity, rate: 0.28 },
+      ],
+    },
+  },
+
+  STATE_TAX_RATES: {
+    California: 0.133,
+    "New York": 0.107,
+    Texas: 0,
+    Florida: 0,
+    Washington: 0,
+    Massachusetts: 0.09,
+    Illinois: 0.0495,
+    // Add more states as needed...
+  },
+
+  MEDICARE_SURTAX_THRESHOLD: {
+    single: 200000,
+    married_joint: 250000,
+    married_separate: 125000,
+    head_household: 200000,
+  },
+
+  MEDICARE_SURTAX_RATE: 0.038,
+
+  MEDICARE_BASE_RATE: 0.0145,
+
+  SOCIAL_SECURITY_RATE: 0.062,
+
+  SOCIAL_SECURITY_WAGE_BASE: {
+    2024: 168600,
+    2025: 175500, // Projected
+  },
+};
+
+/**
+ * Calculate the total value of vested shares
+ * @param {Object} grant - The equity grant object
+ * @returns {number} - The number of vested shares
+ */
+export function calculateVestedShares(grant) {
+  if (!grant) return 0;
+
+  const now = new Date();
+  const vestingStart = new Date(grant.vesting_start_date);
+  const totalShares = grant.shares || 0;
+
+  // If no vesting start date or no shares, return 0
+  if (!vestingStart || totalShares <= 0) return 0;
+
+  // Calculate months since vesting start
+  const monthsSinceStart =
+    (now.getFullYear() - vestingStart.getFullYear()) * 12 +
+    (now.getMonth() - vestingStart.getMonth());
+
+  // If vesting hasn't started yet, return 0
+  if (monthsSinceStart <= 0) return 0;
+
+  // Handle cliff vesting
+  if (grant.cliff_months && monthsSinceStart < grant.cliff_months) {
+    return 0;
+  }
+
+  // Calculate vested percentage based on vesting schedule
+  let vestedPercentage = 0;
+
+  if (grant.vesting_schedule === "monthly") {
+    // Simple monthly vesting
+    vestedPercentage = Math.min(monthsSinceStart / grant.vesting_months, 1);
+  } else if (grant.vesting_schedule === "annual") {
+    // Annual vesting
+    const yearsSinceStart = monthsSinceStart / 12;
+    vestedPercentage = Math.min(
+      Math.floor(yearsSinceStart) / grant.vesting_years,
+      1
+    );
+  } else if (grant.vesting_schedule === "cliff_monthly") {
+    // Cliff then monthly vesting
+    if (monthsSinceStart >= grant.cliff_months) {
+      // Calculate percentage vested at cliff
+      const cliffPercentage =
+        grant.cliff_percent || grant.cliff_months / grant.vesting_months;
+
+      // Calculate additional vesting after cliff
+      const monthsAfterCliff = monthsSinceStart - grant.cliff_months;
+      const remainingPercentage = 1 - cliffPercentage;
+      const monthlyRate =
+        remainingPercentage / (grant.vesting_months - grant.cliff_months);
+
+      vestedPercentage = Math.min(
+        cliffPercentage + monthsAfterCliff * monthlyRate,
+        1
+      );
+    }
+  } else {
+    // Default to simple proportion of vesting period
+    vestedPercentage = Math.min(
+      monthsSinceStart / (grant.vesting_months || 48),
+      1
+    );
+  }
+
+  // Calculate vested shares
+  const vestedShares = Math.floor(totalShares * vestedPercentage);
+
+  return vestedShares;
+}
+
+/**
+ * Calculate exercise cost for options
+ * @param {number} shares - Number of shares to exercise
+ * @param {number} strikePrice - Strike price per share
+ * @returns {number} - Total exercise cost
+ */
+export function calculateExerciseCost(shares, strikePrice) {
+  return shares * strikePrice;
 }
 
 /**
@@ -1389,4 +1473,255 @@ function calculateTimingScore(data) {
  */
 export function calculateGrossProceeds(shares, sellPrice) {
   return shares * sellPrice;
+}
+/**
+ * Calculate the total number of vested shares
+ * @param {Object} grant - The equity grant object
+ * @returns {number} - The number of vested shares
+ */
+// Updated calculateDetailedVesting function for enhanced-grants-dashboard.js
+function calculateDetailedVesting(grant, asOfDate = new Date()) {
+  if (!grant)
+    return {
+      vestedShares: 0,
+      unvestedShares: 0,
+      vestedPercentage: 0,
+      nextVestingDate: null,
+      nextVestingShares: 0,
+    };
+
+  const now = asOfDate instanceof Date ? asOfDate : new Date(asOfDate);
+  const vestingStart = new Date(grant.vesting_start_date);
+  const vestingEnd = new Date(grant.vesting_end_date);
+  const cliffDate = grant.vesting_cliff_date
+    ? new Date(grant.vesting_cliff_date)
+    : null;
+  const totalShares = grant.shares || 0;
+
+  // Initialize result
+  const result = {
+    totalShares,
+    vestedShares: 0,
+    unvestedShares: totalShares,
+    vestedPercentage: 0,
+    isCliffPassed: cliffDate ? now >= cliffDate : true,
+    isFullyVested: now >= vestingEnd,
+    nextVestingDate: null,
+    nextVestingShares: 0,
+    timeUntilNextVesting: null,
+  };
+
+  // If invalid dates or no shares, return default result
+  if (!vestingStart || !vestingEnd || totalShares <= 0) {
+    return result;
+  }
+
+  // If fully vested
+  if (now >= vestingEnd) {
+    result.vestedShares = totalShares;
+    result.unvestedShares = 0;
+    result.vestedPercentage = 100;
+    return result;
+  }
+
+  // If before vesting start, no shares are vested
+  if (now < vestingStart) {
+    result.nextVestingDate = cliffDate || vestingStart;
+    // For cliff, typically 25% vests
+    const cliffPercentage = cliffDate ? 0.25 : 0;
+    result.nextVestingShares = Math.floor(totalShares * cliffPercentage);
+    result.timeUntilNextVesting = Math.ceil(
+      (result.nextVestingDate - now) / (1000 * 60 * 60 * 24)
+    );
+    return result;
+  }
+
+  // If cliff exists and we're before cliff date, no shares are vested
+  if (cliffDate && now < cliffDate) {
+    result.nextVestingDate = cliffDate;
+    // Typical cliff vesting amount (can be customized based on grant details)
+    result.nextVestingShares = Math.floor(totalShares * 0.25);
+    result.timeUntilNextVesting = Math.ceil(
+      (cliffDate - now) / (1000 * 60 * 60 * 24)
+    );
+    return result;
+  }
+
+  // Determine vesting schedule type and calculate accordingly
+  const vestingSchedule = grant.vesting_schedule || "monthly";
+  const totalVestingDays = (vestingEnd - vestingStart) / (1000 * 60 * 60 * 24);
+  const elapsedDays = Math.min(
+    totalVestingDays,
+    (now - vestingStart) / (1000 * 60 * 60 * 24)
+  );
+
+  // Calculate interval days based on vesting schedule
+  let intervalDays;
+  switch (vestingSchedule) {
+    case "yearly":
+      intervalDays = 365;
+      break;
+    case "quarterly":
+      intervalDays = 91.25; // Approximately a quarter
+      break;
+    case "monthly":
+    default:
+      intervalDays = 30.44; // Average month length
+      break;
+  }
+
+  // Calculate vested shares
+  let vestedShares = 0;
+
+  // Standard vesting with cliff
+  if (cliffDate && now >= cliffDate) {
+    // Calculate cliff amount (typically 25% for 1-year cliff)
+    const cliffPercentage = 0.25;
+    const cliffShares = Math.floor(totalShares * cliffPercentage);
+
+    // Calculate additional vesting after cliff
+    const daysAfterCliff = (now - cliffDate) / (1000 * 60 * 60 * 24);
+    const remainingShares = totalShares - cliffShares;
+    const remainingDays = (vestingEnd - cliffDate) / (1000 * 60 * 60 * 24);
+
+    const additionalVested = Math.floor(
+      (daysAfterCliff / remainingDays) * remainingShares
+    );
+    vestedShares = Math.min(cliffShares + additionalVested, totalShares);
+  } else {
+    // Simple linear vesting
+    vestedShares = Math.floor((elapsedDays / totalVestingDays) * totalShares);
+  }
+
+  // RSUs that require liquidity event
+  if (grant.grant_type === "RSU" && grant.liquidity_event_only) {
+    vestedShares = 0;
+  }
+
+  // Calculate next vesting date and amount
+  let nextDate = null;
+  let nextShares = 0;
+
+  if (vestedShares < totalShares) {
+    if (vestingSchedule === "monthly") {
+      nextDate = new Date(now);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      // Adjust day to match original grant's day if possible
+      const originalDay = vestingStart.getDate();
+      const maxDaysInMonth = new Date(
+        nextDate.getFullYear(),
+        nextDate.getMonth() + 1,
+        0
+      ).getDate();
+      nextDate.setDate(Math.min(originalDay, maxDaysInMonth));
+
+      const monthlyAmount = totalShares / 48; // Typical 48-month vesting
+      nextShares = Math.min(
+        Math.floor(monthlyAmount),
+        totalShares - vestedShares
+      );
+    } else if (vestingSchedule === "quarterly") {
+      nextDate = new Date(now);
+      nextDate.setMonth(nextDate.getMonth() + 3);
+      // Adjust day to match original grant's day if possible
+      const originalDay = vestingStart.getDate();
+      const maxDaysInMonth = new Date(
+        nextDate.getFullYear(),
+        nextDate.getMonth() + 1,
+        0
+      ).getDate();
+      nextDate.setDate(Math.min(originalDay, maxDaysInMonth));
+
+      const quarterlyAmount = totalShares / 16; // Typical 16-quarter vesting
+      nextShares = Math.min(
+        Math.floor(quarterlyAmount),
+        totalShares - vestedShares
+      );
+    } else {
+      nextDate = new Date(now);
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      // Keep exact date for yearly vesting
+      nextDate.setMonth(vestingStart.getMonth());
+      nextDate.setDate(vestingStart.getDate());
+
+      const yearlyAmount = totalShares / 4; // Typical 4-year vesting
+      nextShares = Math.min(
+        Math.floor(yearlyAmount),
+        totalShares - vestedShares
+      );
+    }
+
+    // If next date is beyond vesting end, use vesting end
+    if (nextDate > vestingEnd) {
+      nextDate = new Date(vestingEnd);
+      nextShares = totalShares - vestedShares;
+    }
+  }
+
+  // Update result
+  result.vestedShares = vestedShares;
+  result.unvestedShares = totalShares - vestedShares;
+  result.vestedPercentage = (vestedShares / totalShares) * 100;
+  result.nextVestingDate = nextDate;
+  result.nextVestingShares = nextShares;
+  result.timeUntilNextVesting = nextDate
+    ? Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24))
+    : null;
+
+  return result;
+}
+
+/**
+ * Calculate exercise cost for options
+ * @param {number} shares - Number of shares to exercise
+ * @param {number} strikePrice - Strike price per share
+ * @returns {number} - Total exercise cost
+ */
+export function calculateExerciseCost(shares, strikePrice) {
+  const numShares = Number(shares) || 0;
+  const numStrikePrice = Number(strikePrice) || 0;
+  return numShares * numStrikePrice;
+}
+
+/**
+ * Calculate current value of shares
+ * @param {number} shares - Number of shares
+ * @param {number} currentFMV - Current fair market value per share
+ * @returns {number} - Total value of shares
+ */
+export function calculateCurrentValue(shares, currentFMV) {
+  const numShares = Number(shares) || 0;
+  const numFMV = Number(currentFMV) || 0;
+  return numShares * numFMV;
+}
+
+/**
+ * Calculate vesting percentage
+ * @param {number} vestedShares - Number of vested shares
+ * @param {number} totalShares - Total number of shares
+ * @returns {number} - Vesting percentage (0-100)
+ */
+export function calculateVestingPercentage(vestedShares, totalShares) {
+  const numVestedShares = Number(vestedShares) || 0;
+  const numTotalShares = Number(totalShares) || 1; // Avoid division by zero
+  return (numVestedShares / numTotalShares) * 100;
+}
+
+/**
+ * Calculate potential return percentage
+ * @param {number} currentFMV - Current fair market value
+ * @param {number} strikePrice - Strike price
+ * @returns {number} - Return percentage (0-100)
+ */
+export function calculateReturnPercentage(currentFMV, strikePrice) {
+  const numFMV = Number(currentFMV) || 0;
+  const numStrikePrice = Number(strikePrice) || 1; // Avoid division by zero
+
+  // Calculate how much the share price has increased
+  const increase = numFMV - numStrikePrice;
+
+  // Calculate the percentage increase
+  const returnPercentage = (increase / numStrikePrice) * 100;
+
+  return returnPercentage;
 }
