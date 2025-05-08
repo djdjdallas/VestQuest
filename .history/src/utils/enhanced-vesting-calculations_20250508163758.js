@@ -9,22 +9,16 @@
  * @param {Date} [asOfDate=new Date()] - The date to calculate vesting as of
  * @returns {Object} Detailed vesting information
  */
+// Updated calculateDetailedVesting function for enhanced-grants-dashboard.js
 export function calculateDetailedVesting(grant, asOfDate = new Date()) {
-  // Handle null/undefined grant
-  if (!grant) {
+  if (!grant)
     return {
-      totalShares: 0,
       vestedShares: 0,
       unvestedShares: 0,
       vestedPercentage: 0,
-      isCliffPassed: false,
-      isFullyVested: false,
       nextVestingDate: null,
       nextVestingShares: 0,
-      vestingSchedule: [], // Empty array, not undefined
-      timeUntilNextVesting: null,
     };
-  }
 
   const now = asOfDate instanceof Date ? asOfDate : new Date(asOfDate);
   const vestingStart = new Date(grant.vesting_start_date);
@@ -44,7 +38,6 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
     isFullyVested: now >= vestingEnd,
     nextVestingDate: null,
     nextVestingShares: 0,
-    vestingSchedule: [], // Initialize with empty array
     timeUntilNextVesting: null,
   };
 
@@ -52,33 +45,6 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
   if (!vestingStart || !vestingEnd || totalShares <= 0) {
     return result;
   }
-
-  // Determine vesting schedule type and calculate accordingly
-  const vestingSchedule = grant.vesting_schedule || "monthly";
-
-  // Calculate interval days based on vesting schedule
-  let intervalDays;
-  switch (vestingSchedule) {
-    case "yearly":
-      intervalDays = 365;
-      break;
-    case "quarterly":
-      intervalDays = 91.25; // Approximately a quarter
-      break;
-    case "monthly":
-    default:
-      intervalDays = 30.44; // Average month length
-      break;
-  }
-
-  // Generate vesting schedule first so it's available for any return path
-  result.vestingSchedule = generateVestingSchedule(
-    grant,
-    cliffDate,
-    vestingStart,
-    vestingEnd,
-    intervalDays
-  );
 
   // If fully vested
   if (now >= vestingEnd) {
@@ -111,11 +77,28 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
     return result;
   }
 
+  // Determine vesting schedule type and calculate accordingly
+  const vestingSchedule = grant.vesting_schedule || "monthly";
   const totalVestingDays = (vestingEnd - vestingStart) / (1000 * 60 * 60 * 24);
   const elapsedDays = Math.min(
     totalVestingDays,
     (now - vestingStart) / (1000 * 60 * 60 * 24)
   );
+
+  // Calculate interval days based on vesting schedule
+  let intervalDays;
+  switch (vestingSchedule) {
+    case "yearly":
+      intervalDays = 365;
+      break;
+    case "quarterly":
+      intervalDays = 91.25; // Approximately a quarter
+      break;
+    case "monthly":
+    default:
+      intervalDays = 30.44; // Average month length
+      break;
+  }
 
   // Calculate vested shares
   let vestedShares = 0;

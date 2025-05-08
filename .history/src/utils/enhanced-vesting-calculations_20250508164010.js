@@ -9,7 +9,7 @@
  * @param {Date} [asOfDate=new Date()] - The date to calculate vesting as of
  * @returns {Object} Detailed vesting information
  */
-export function calculateDetailedVesting(grant, asOfDate = new Date()) {
+function calculateDetailedVesting(grant, asOfDate = new Date()) {
   // Handle null/undefined grant
   if (!grant) {
     return {
