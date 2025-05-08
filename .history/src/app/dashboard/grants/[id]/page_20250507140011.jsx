@@ -36,13 +36,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { VestingProgressCard } from "@/components/vesting-progress-card";
 import AuthLoading from "@/components/auth/AuthLoading";
-import {
-  calculateVestedShares,
-  calculateExerciseCost,
-  calculateCurrentValue,
-  calculateVestingPercentage,
-  calculateReturnPercentage,
-} from "@/utils/calculations";
+import { calculateVestedShares } from "@/utils/calculations";
 
 export default function GrantDetailsPage({ params }) {
   const router = useRouter();
@@ -54,7 +48,6 @@ export default function GrantDetailsPage({ params }) {
     vestedPercent: 0,
     exerciseCost: 0,
     currentValue: 0,
-    returnPercentage: 0,
   });
   const supabase = createClient();
 
@@ -86,50 +79,19 @@ export default function GrantDetailsPage({ params }) {
           return;
         }
 
-        // Ensure all data has proper types
-        const parsedGrant = {
-          ...data,
-          shares: Number(data.shares) || 0,
-          strike_price: Number(data.strike_price) || 0,
-          current_fmv: Number(data.current_fmv) || 0,
-        };
-
-        setGrant(parsedGrant);
+        setGrant(data);
 
         // Calculate vesting details
-        const vestedShares = calculateVestedShares(parsedGrant);
-        const vestedPercent = calculateVestingPercentage(
-          vestedShares,
-          parsedGrant.shares
-        );
-        const exerciseCost = calculateExerciseCost(
-          vestedShares,
-          parsedGrant.strike_price
-        );
-        const currentValue = calculateCurrentValue(
-          vestedShares,
-          parsedGrant.current_fmv
-        );
-        const returnPercentage = calculateReturnPercentage(
-          parsedGrant.current_fmv,
-          parsedGrant.strike_price
-        );
+        const vestedShares = calculateVestedShares(data);
+        const vestedPercent = (vestedShares / data.shares) * 100;
+        const exerciseCost = vestedShares * data.strike_price;
+        const currentValue = vestedShares * data.current_fmv;
 
         setVestingDetails({
           vestedShares,
           vestedPercent,
           exerciseCost,
           currentValue,
-          returnPercentage,
-        });
-
-        console.log("Vesting calculation details:", {
-          grant: parsedGrant,
-          vestedShares,
-          vestedPercent,
-          exerciseCost,
-          currentValue,
-          returnPercentage,
         });
       } catch (error) {
         console.error("Error fetching grant:", error);
@@ -231,36 +193,18 @@ export default function GrantDetailsPage({ params }) {
 
   // Format date string
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    try {
-      return format(new Date(dateString), "MMMM d, yyyy");
-    } catch (error) {
-      console.error("Date formatting error:", error);
-      return "Invalid date";
-    }
-  };
-
-  // Format currency
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  // Format number with commas
-  const formatNumber = (value) => {
-    return new Intl.NumberFormat("en-US").format(value);
+    return format(new Date(dateString), "MMMM d, yyyy");
   };
 
   return (
     <DashboardShell>
       <DashboardHeader
         heading={grant.company_name}
-        text={`${grant.grant_type} grant with ${formatNumber(
-          grant.shares
-        )} shares at $${grant.strike_price}`}
+        text={`${
+          grant.grant_type
+        } grant with ${grant.shares.toLocaleString()} shares at $${
+          grant.strike_price
+        }`}
       >
         <div className="flex space-x-2">
           <Button
@@ -304,7 +248,7 @@ export default function GrantDetailsPage({ params }) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatNumber(grant.shares)}
+                  {grant.shares.toLocaleString()}
                 </div>
               </CardContent>
             </Card>
@@ -317,15 +261,15 @@ export default function GrantDetailsPage({ params }) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatNumber(vestingDetails.vestedShares)}
+                  {vestingDetails.vestedShares.toLocaleString()}
                 </div>
                 <div className="flex items-center space-x-2 mt-1">
                   <Progress
-                    value={vestingDetails.vestedPercent || 0}
+                    value={vestingDetails.vestedPercent}
                     className="h-2"
                   />
                   <div className="text-xs text-muted-foreground">
-                    {(vestingDetails.vestedPercent || 0).toFixed(1)}%
+                    {vestingDetails.vestedPercent.toFixed(1)}%
                   </div>
                 </div>
               </CardContent>
@@ -339,7 +283,7 @@ export default function GrantDetailsPage({ params }) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(vestingDetails.currentValue)}
+                  ${vestingDetails.currentValue.toLocaleString()}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   At ${grant.current_fmv.toFixed(2)} per share
@@ -355,7 +299,7 @@ export default function GrantDetailsPage({ params }) {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {formatCurrency(vestingDetails.exerciseCost)}
+                  ${vestingDetails.exerciseCost.toLocaleString()}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   For vested shares
@@ -422,10 +366,8 @@ export default function GrantDetailsPage({ params }) {
                   </h3>
                   <p className="flex items-center mt-0.5">
                     <Clock className="mr-1 h-4 w-4 text-primary" />
-                    {grant.vesting_schedule
-                      ? grant.vesting_schedule.charAt(0).toUpperCase() +
-                        grant.vesting_schedule.slice(1)
-                      : "Monthly"}
+                    {grant.vesting_schedule.charAt(0).toUpperCase() +
+                      grant.vesting_schedule.slice(1)}
                   </p>
                 </div>
                 <div>
@@ -434,7 +376,11 @@ export default function GrantDetailsPage({ params }) {
                   </h3>
                   <p className="flex items-center mt-0.5">
                     <Percent className="mr-1 h-4 w-4 text-primary" />
-                    {vestingDetails.returnPercentage.toFixed(1)}%
+                    {(
+                      (grant.current_fmv / grant.strike_price - 1) *
+                      100
+                    ).toFixed(1)}
+                    %
                   </p>
                 </div>
               </div>
@@ -452,7 +398,7 @@ export default function GrantDetailsPage({ params }) {
                   <div className="w-full bg-muted h-2 rounded-full">
                     <div
                       className="bg-primary h-2 rounded-full"
-                      style={{ width: `${vestingDetails.vestedPercent || 0}%` }}
+                      style={{ width: `${vestingDetails.vestedPercent}%` }}
                     ></div>
                   </div>
                   <div>
@@ -484,11 +430,7 @@ export default function GrantDetailsPage({ params }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VestingProgressCard
-                vestedShares={vestingDetails.vestedShares}
-                unvestedShares={grant.shares - vestingDetails.vestedShares}
-                vestedPercent={vestingDetails.vestedPercent}
-              />
+              <VestingProgressCard />
             </CardContent>
           </Card>
 
