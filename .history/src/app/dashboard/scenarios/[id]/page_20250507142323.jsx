@@ -13,10 +13,6 @@ import {
   PieChart,
   Calendar,
   DollarSign,
-  Share2,
-  Download,
-  Users,
-  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,34 +30,20 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import AuthLoading from "@/components/auth/AuthLoading";
 import { calculateScenarioResult } from "@/utils/calculations";
 
 export default function ScenarioDetailsPage() {
   const router = useRouter();
-  const params = useParams();
+  const params = useParams(); // Using useParams hook instead of receiving params as a prop
   const [scenario, setScenario] = useState(null);
   const [grant, setGrant] = useState(null);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const supabase = createClient();
 
   // Fetch the scenario and related grant data
@@ -96,57 +78,29 @@ export default function ScenarioDetailsPage() {
           return;
         }
 
-        // Clean up the scenario data to ensure all numerical fields are properly typed
-        const cleanedScenario = {
-          ...scenarioData,
-          share_price: parseFloat(scenarioData.share_price) || 0,
-          shares_included: parseInt(scenarioData.shares_included) || 0,
-          exercise_cost: parseFloat(scenarioData.exercise_cost) || 0,
-          tax_liability: parseFloat(scenarioData.tax_liability) || 0,
-          gross_proceeds: parseFloat(scenarioData.gross_proceeds) || 0,
-          net_proceeds: parseFloat(scenarioData.net_proceeds) || 0,
-          roi_percentage: parseFloat(scenarioData.roi_percentage) || 0,
-          effective_tax_rate: parseFloat(scenarioData.effective_tax_rate) || 0,
-        };
-
-        setScenario(cleanedScenario);
+        setScenario(scenarioData);
 
         // If there's a grant_id, fetch the grant data
-        if (cleanedScenario.grant_id) {
+        if (scenarioData.grant_id) {
           const { data: grantData, error: grantError } = await supabase
             .from("equity_grants")
             .select("*")
-            .eq("id", cleanedScenario.grant_id)
+            .eq("id", scenarioData.grant_id)
             .single();
 
-          if (grantError) {
-            console.error("Error fetching grant:", grantError);
-            // Don't throw - we can still show scenario without grant
-          } else {
-            setGrant(grantData);
+          if (grantError) throw grantError;
 
-            // Calculate scenario results if needed
-            // If we already have calculated fields in the scenario, use those
-            if (
-              cleanedScenario.gross_proceeds &&
-              cleanedScenario.net_proceeds
-            ) {
-              setResults(cleanedScenario);
-            } else if (grantData && cleanedScenario) {
-              // Otherwise recalculate
-              const calculatedResults = calculateScenarioResult(
-                grantData,
-                cleanedScenario.share_price,
-                cleanedScenario.shares_included || grantData.shares,
-                cleanedScenario.scenario_name
-              );
-              setResults(calculatedResults);
-            }
-          }
-        } else {
-          // If there's no grant but we have calculated fields, use those
-          if (cleanedScenario.gross_proceeds && cleanedScenario.net_proceeds) {
-            setResults(cleanedScenario);
+          setGrant(grantData);
+
+          // Calculate scenario results
+          if (grantData && scenarioData) {
+            const results = calculateScenarioResult(
+              grantData,
+              scenarioData.share_price,
+              scenarioData.shares_included || grantData.shares,
+              scenarioData.name
+            );
+            setResults(results);
           }
         }
       } catch (error) {
@@ -161,21 +115,21 @@ export default function ScenarioDetailsPage() {
   }, [supabase, params.id, router]);
 
   const handleDeleteScenario = async () => {
-    try {
-      const { error } = await supabase
-        .from("scenarios")
-        .delete()
-        .eq("id", params.id);
+    if (confirm("Are you sure you want to delete this scenario?")) {
+      try {
+        const { error } = await supabase
+          .from("scenarios")
+          .delete()
+          .eq("id", params.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast.success("Scenario deleted successfully");
-      router.push("/dashboard/scenarios");
-    } catch (error) {
-      console.error("Error deleting scenario:", error);
-      toast.error(error.message || "Failed to delete scenario");
-    } finally {
-      setShowDeleteDialog(false);
+        toast.success("Scenario deleted successfully");
+        router.push("/dashboard/scenarios");
+      } catch (error) {
+        console.error("Error deleting scenario:", error);
+        toast.error(error.message || "Failed to delete scenario");
+      }
     }
   };
 
@@ -195,32 +149,11 @@ export default function ScenarioDetailsPage() {
 
   // Format date string
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
-
-  // Format currency helper
-  const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(value)) {
-      return "$0";
-    }
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  // Format percentages
-  const formatPercentage = (value) => {
-    if (value === undefined || value === null || isNaN(value)) {
-      return "0%";
-    }
-    return `${value.toFixed(1)}%`;
   };
 
   // Show loading state
@@ -292,12 +225,10 @@ export default function ScenarioDetailsPage() {
   return (
     <DashboardShell>
       <DashboardHeader
-        heading={scenario.scenario_name || "Scenario Details"}
-        text={`${scenario.exit_type || "Exit"} scenario with ${(
-          scenario.shares_included || 0
-        ).toLocaleString()} shares at $${
-          scenario.share_price?.toFixed(2) || "0.00"
-        }`}
+        heading={scenario.name || "Scenario Details"}
+        text={`${scenario.exit_type || "Exit"} scenario with ${
+          scenario.shares_included?.toLocaleString() || "N/A"
+        } shares at ${scenario.share_price || 0}`}
       >
         <div className="flex space-x-2">
           <Button
@@ -319,20 +250,11 @@ export default function ScenarioDetailsPage() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setShowDeleteDialog(true)}
+                onClick={handleDeleteScenario}
                 className="text-red-500 focus:text-red-500"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Scenario
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem disabled>
-                <Share2 className="mr-2 h-4 w-4" />
-                Share Scenario
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled>
-                <Download className="mr-2 h-4 w-4" />
-                Export as PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -371,7 +293,7 @@ export default function ScenarioDetailsPage() {
                 </h3>
                 <p className="flex items-center mt-0.5">
                   <ScenarioIcon className="mr-1 h-4 w-4 text-primary" />
-                  {scenario.exit_type || "Custom"}
+                  {scenario.exit_type}
                 </p>
               </div>
               <div>
@@ -391,23 +313,18 @@ export default function ScenarioDetailsPage() {
                   Share Price
                 </h3>
                 <p className="flex items-center mt-0.5">
-                  <DollarSign className="mr-1 h-4 w-4 text-primary" />
-                  {scenario.share_price
-                    ? `$${scenario.share_price.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}`
-                    : "$0.00"}
+                  <DollarSign className="mr-1 h-4 w-4 text-primary" />$
+                  {scenario.share_price?.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">
                   Shares Included
                 </h3>
-                <p className="flex items-center mt-0.5">
-                  <Users className="mr-1 h-4 w-4 text-primary" />
-                  {scenario.shares_included?.toLocaleString() || "0"}
-                </p>
+                <p>{scenario.shares_included?.toLocaleString() || "N/A"}</p>
               </div>
             </div>
 
@@ -427,8 +344,8 @@ export default function ScenarioDetailsPage() {
                     </span>
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {grant.shares?.toLocaleString() || "0"} shares at $
-                    {grant.strike_price?.toFixed(2) || "0.00"}
+                    {grant.shares?.toLocaleString()} shares at $
+                    {grant.strike_price?.toFixed(2)}
                   </div>
                 </Link>
               </div>
@@ -459,11 +376,7 @@ export default function ScenarioDetailsPage() {
                   Gross Proceeds
                 </h3>
                 <p className="text-2xl font-bold">
-                  {formatCurrency(results.gross_proceeds)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {scenario.shares_included?.toLocaleString() || "0"} shares × $
-                  {scenario.share_price?.toFixed(2) || "0.00"}
+                  ${results.gross_proceeds?.toLocaleString()}
                 </p>
               </div>
 
@@ -473,11 +386,7 @@ export default function ScenarioDetailsPage() {
                     Exercise Cost
                   </h3>
                   <p className="text-lg text-red-500">
-                    {formatCurrency(
-                      results.exercise_cost && results.exercise_cost > 0
-                        ? -results.exercise_cost
-                        : 0
-                    )}
+                    -${results.exercise_cost?.toLocaleString()}
                   </p>
                 </div>
                 <div>
@@ -485,11 +394,7 @@ export default function ScenarioDetailsPage() {
                     Tax Liability
                   </h3>
                   <p className="text-lg text-red-500">
-                    {formatCurrency(
-                      results.tax_liability && results.tax_liability > 0
-                        ? -results.tax_liability
-                        : 0
-                    )}
+                    -${results.tax_liability?.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -499,7 +404,7 @@ export default function ScenarioDetailsPage() {
                   Net Proceeds
                 </h3>
                 <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(results.net_proceeds)}
+                  ${results.net_proceeds?.toLocaleString()}
                 </p>
               </div>
 
@@ -509,7 +414,7 @@ export default function ScenarioDetailsPage() {
                     Return on Investment
                   </h3>
                   <p className="font-medium">
-                    {formatPercentage(results.roi_percentage)}
+                    {results.roi_percentage?.toFixed(1)}%
                   </p>
                 </div>
                 <div>
@@ -517,105 +422,21 @@ export default function ScenarioDetailsPage() {
                     Effective Tax Rate
                   </h3>
                   <p className="font-medium">
-                    {formatPercentage(results.effective_tax_rate * 100)}
+                    {(results.effective_tax_rate * 100)?.toFixed(1)}%
                   </p>
                 </div>
               </div>
-
-              <Separator className="my-4" />
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">Breakdown</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Exercise Cost</span>
-                      <span>
-                        {formatPercentage(
-                          (results.exercise_cost / results.gross_proceeds) * 100
-                        )}
-                      </span>
-                    </div>
-                    <Progress
-                      value={
-                        (results.exercise_cost / results.gross_proceeds) * 100
-                      }
-                      className="h-2 bg-blue-200"
-                      indicatorColor="bg-blue-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Tax Liability</span>
-                      <span>
-                        {formatPercentage(
-                          (results.tax_liability / results.gross_proceeds) * 100
-                        )}
-                      </span>
-                    </div>
-                    <Progress
-                      value={
-                        (results.tax_liability / results.gross_proceeds) * 100
-                      }
-                      className="h-2 bg-red-200"
-                      indicatorColor="bg-red-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Net Proceeds</span>
-                      <span>
-                        {formatPercentage(
-                          (results.net_proceeds / results.gross_proceeds) * 100
-                        )}
-                      </span>
-                    </div>
-                    <Progress
-                      value={
-                        (results.net_proceeds / results.gross_proceeds) * 100
-                      }
-                      className="h-2 bg-green-200"
-                      indicatorColor="bg-green-600"
-                    />
-                  </div>
-                </div>
-              </div>
             </CardContent>
-            <CardFooter className="border-t pt-6">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/dashboard/decisions/exit">
-                  <ArrowUpRight className="mr-2 h-4 w-4" />
-                  Run Exit Planning Guide
-                </Link>
-              </Button>
+            <CardFooter className="border-t pt-6 text-xs text-muted-foreground">
+              <p>
+                This is an estimate based on current information. Actual results
+                may vary based on tax laws and other factors at the time of
+                exit.
+              </p>
             </CardFooter>
           </Card>
         )}
       </div>
-
-      {/* Delete confirmation dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Scenario</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this scenario? This action cannot
-              be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteScenario}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardShell>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { use } from "react"; // Add this import
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -47,9 +46,6 @@ import {
 
 export default function GrantDetailsPage({ params }) {
   const router = useRouter();
-  const unwrappedParams = use(params); // Unwrap params here
-  const grantId = unwrappedParams.id; // Get the ID from unwrapped params
-
   const [grant, setGrant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,7 +74,7 @@ export default function GrantDetailsPage({ params }) {
         const { data, error } = await supabase
           .from("equity_grants")
           .select("*")
-          .eq("id", grantId) // Use unwrapped ID here
+          .eq("id", params.id)
           .single();
 
         if (error) throw error;
@@ -144,7 +140,7 @@ export default function GrantDetailsPage({ params }) {
     };
 
     fetchGrant();
-  }, [supabase, grantId, router]); // Update dependency array
+  }, [supabase, params.id, router]);
 
   const handleDeleteGrant = async () => {
     if (
@@ -156,7 +152,7 @@ export default function GrantDetailsPage({ params }) {
         const { error } = await supabase
           .from("equity_grants")
           .delete()
-          .eq("id", grantId); // Use unwrapped ID here
+          .eq("id", params.id);
 
         if (error) throw error;
 
@@ -280,7 +276,7 @@ export default function GrantDetailsPage({ params }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/dashboard/grants/${grantId}/edit`}>
+                <Link href={`/dashboard/grants/${grant.id}/edit`}>
                   <Edit2 className="mr-2 h-4 w-4" />
                   Edit Grant
                 </Link>
@@ -502,12 +498,12 @@ export default function GrantDetailsPage({ params }) {
             </CardHeader>
             <CardContent className="space-y-2">
               <Button className="w-full" asChild>
-                <Link href={`/dashboard/scenarios/add?grant=${grantId}`}>
+                <Link href={`/dashboard/scenarios/add?grant=${grant.id}`}>
                   Create Exit Scenario
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href={`/dashboard/grants/${grantId}/edit`}>
+                <Link href={`/dashboard/grants/${grant.id}/edit`}>
                   Update Grant
                 </Link>
               </Button>
