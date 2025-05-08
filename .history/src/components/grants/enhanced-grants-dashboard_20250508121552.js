@@ -1254,6 +1254,8 @@ const EnhancedGrantsDashboard = ({
             </CardFooter>
           </Card>
           {/* Vesting Milestones */}
+          // Replace the existing Key Vesting Milestones section in the Vesting
+          tab of EnhancedGrantsDashboard // with this updated component:
           <Card>
             <CardHeader>
               <CardTitle>Key Vesting Milestones</CardTitle>

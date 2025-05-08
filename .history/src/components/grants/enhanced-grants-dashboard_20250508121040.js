@@ -1186,6 +1186,7 @@ const EnhancedGrantsDashboard = ({
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
           {/* Vesting Schedule Table */}
           <Card>
             <CardHeader>
@@ -1253,6 +1254,7 @@ const EnhancedGrantsDashboard = ({
               </Button>
             </CardFooter>
           </Card>
+
           {/* Vesting Milestones */}
           <Card>
             <CardHeader>
@@ -1267,22 +1269,8 @@ const EnhancedGrantsDashboard = ({
                   const cliffDate = grant.vesting_cliff_date
                     ? new Date(grant.vesting_cliff_date)
                     : null;
-                  const startDate = new Date(grant.vesting_start_date);
                   const endDate = new Date(grant.vesting_end_date);
                   const now = new Date();
-
-                  // Calculate milestone dates
-                  const totalVestingTime =
-                    endDate.getTime() - startDate.getTime();
-                  const quarterPoint = new Date(
-                    startDate.getTime() + totalVestingTime * 0.25
-                  );
-                  const midPoint = new Date(
-                    startDate.getTime() + totalVestingTime * 0.5
-                  );
-                  const threeQuarterPoint = new Date(
-                    startDate.getTime() + totalVestingTime * 0.75
-                  );
 
                   return (
                     <div
@@ -1303,32 +1291,11 @@ const EnhancedGrantsDashboard = ({
                       </div>
 
                       <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-primary" />
-                            <span>Grant Date (0%)</span>
-                          </div>
-                          <div className="flex items-center">
-                            <span
-                              className={`${
-                                now > startDate ? "text-green-600" : ""
-                              }`}
-                            >
-                              {formatDate(startDate)}
-                            </span>
-                            {now > startDate && (
-                              <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                                Passed
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
                         {cliffDate && (
                           <div className="flex justify-between items-center">
                             <div className="flex items-center">
                               <Clock className="h-4 w-4 mr-2 text-primary" />
-                              <span>Cliff Date (25%)</span>
+                              <span>Cliff Date ({formatPercentage(25)})</span>
                             </div>
                             <div className="flex items-center">
                               <span
@@ -1350,62 +1317,18 @@ const EnhancedGrantsDashboard = ({
                         <div className="flex justify-between items-center">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-2 text-primary" />
-                            <span>25% Vested</span>
-                          </div>
-                          <div className="flex items-center">
-                            <span
-                              className={`${
-                                now > quarterPoint ? "text-green-600" : ""
-                              }`}
-                            >
-                              {formatDate(quarterPoint)}
-                            </span>
-                            {now > quarterPoint && (
-                              <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                                Passed
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-primary" />
                             <span>50% Vested</span>
                           </div>
-                          <div className="flex items-center">
-                            <span
-                              className={`${
-                                now > midPoint ? "text-green-600" : ""
-                              }`}
-                            >
-                              {formatDate(midPoint)}
-                            </span>
-                            {now > midPoint && (
-                              <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                                Passed
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-primary" />
-                            <span>75% Vested</span>
-                          </div>
-                          <div className="flex items-center">
-                            <span
-                              className={`${
-                                now > threeQuarterPoint ? "text-green-600" : ""
-                              }`}
-                            >
-                              {formatDate(threeQuarterPoint)}
-                            </span>
-                            {now > threeQuarterPoint && (
-                              <Badge className="ml-2 bg-green-100 text-green-800 text-xs">
-                                Passed
-                              </Badge>
+                          <div>
+                            {formatDate(
+                              new Date(
+                                new Date(grant.vesting_start_date).getTime() +
+                                  (new Date(grant.vesting_end_date).getTime() -
+                                    new Date(
+                                      grant.vesting_start_date
+                                    ).getTime()) /
+                                    2
+                              )
                             )}
                           </div>
                         </div>
