@@ -322,11 +322,7 @@ export default function DashboardPage() {
   }
 
   // Format currency helper
-  // Improved formatCurrency helper
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(value)) {
-      return "$0";
-    }
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",

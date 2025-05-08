@@ -179,14 +179,7 @@ export default function DashboardPage() {
 
         if (scenariosError) throw scenariosError;
 
-        const sanitizedScenarios = (scenariosData || []).map((scenario) => ({
-          ...scenario,
-          share_price: parseFloat(scenario.share_price) || 0,
-          shares_included: parseInt(scenario.shares_included) || 0,
-          // Add other numeric fields that need sanitizing
-        }));
-
-        setScenarios(sanitizedScenarios);
+        setScenarios(scenariosData || []);
 
         // Generate upcoming vesting notifications
         const upcomingVestingNotifications = [];
@@ -322,11 +315,7 @@ export default function DashboardPage() {
   }
 
   // Format currency helper
-  // Improved formatCurrency helper
   const formatCurrency = (value) => {
-    if (value === undefined || value === null || isNaN(value)) {
-      return "$0";
-    }
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
@@ -463,7 +452,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-          <Tabs defaultValue="overview" className="pt-4">
+          <Tabs defaultValue="overview" className="pt-4 pb-6">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="grants">Grants</TabsTrigger>

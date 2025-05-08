@@ -46,6 +46,7 @@ import {
   PieChart as PieChartIcon,
   LineChart as LineChartIcon,
 } from "lucide-react";
+import saveAs from "save-as";
 const COLORS = [
   "#0088FE",
   "#00C49F",
@@ -55,7 +56,7 @@ const COLORS = [
   "#8dd1e1",
 ];
 import { AIScenarioInsights } from "@/components/scenario/ai-scenario-insights";
-import { ScenarioExportDialog } from "@/components/scenario/ScenarioExportDialog";
+
 export function EnhancedScenarioComparison({ scenarios = [] }) {
   const [comparisonMetric, setComparisonMetric] = useState("net_proceeds");
   const [chartType, setChartType] = useState("bar");
@@ -610,21 +611,30 @@ export function EnhancedScenarioComparison({ scenarios = [] }) {
           {validScenarios.length} scenario
           {validScenarios.length !== 1 ? "s" : ""} compared
         </div>
-
-        <ScenarioExportDialog
-          scenarios={validScenarios}
-          timelineData={timelineData}
-          onExportComplete={(format) => {
-            console.log(`Exported in ${format} format`);
-            // Add any additional actions after export
-          }}
-          trigger={
-            <Button variant="outline" size="sm">
-              <DownloadIcon className="h-4 w-4 mr-2" />
-              Export Comparison
-            </Button>
-          }
-        />
+        <div className="flex gap-2">
+          <Select>
+            <SelectTrigger className="w-[130px] h-9">
+              <SelectValue placeholder="Export as..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="csv" onSelect={handleExportComparison}>
+                CSV
+              </SelectItem>
+              <SelectItem value="json" onSelect={handleExportDetailedReport}>
+                JSON
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportComparison}
+            disabled={exportLoading}
+          >
+            <DownloadIcon className="h-4 w-4 mr-2" />
+            {exportLoading ? "Exporting..." : "Export"}
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );
