@@ -1,12 +1,13 @@
-// Update this section in src/app/dashboard/vesting/page.jsx
+// Updated VestingPage component with integrated simulation functionality
 "use client";
+
 import { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
 import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Download, Info, Clock, ChevronRight, PlusCircle } from "lucide-react";
-
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,8 +27,7 @@ import {
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { VestingTimeline } from "@/components/vesting-timeline";
-import { VestingExplainer } from "@/components/vesting-explainer";
-import { UpcomingEventsTab } from "@/components/upcoming-events"; // Import the new component
+import { VestingExplainer } from "/src/components/vesting-explainer.jsx";
 import { VestingSimulationModal } from "@/components/vesting-simulation/VestingSimulationModal";
 import { useVestingSimulation } from "@/components/vesting-simulation/useVestingSimulation";
 import AuthLoading from "@/components/auth/AuthLoading";
@@ -454,7 +454,9 @@ export default function VestingPage() {
             <TabsList>
               <TabsTrigger value="timeline">Vesting Timeline</TabsTrigger>
               <TabsTrigger value="learn">Learn About Vesting</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
+              <TabsTrigger asChild>
+                <Link href="/dashboard/upcoming-events">Upcoming Events</Link>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline" className="space-y-4">
@@ -663,8 +665,72 @@ export default function VestingPage() {
             </TabsContent>
 
             <TabsContent value="upcoming" className="space-y-4">
-              {/* Use the new component for Upcoming Events Tab */}
-              <UpcomingEventsTab />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Vesting Events</CardTitle>
+                  <CardDescription>
+                    All your upcoming vesting events across all grants
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {upcomingEvents.length > 0 ? (
+                    <div className="space-y-4">
+                      {upcomingEvents.map((event, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="rounded-md bg-primary/10 p-2">
+                              <Clock className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {format(new Date(event.date), "MMMM d, yyyy")}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {event.company} - {event.grant_type}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">
+                              {event.shares.toLocaleString()} shares
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              ${(event.value || 0).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center">
+                      <p className="text-muted-foreground">
+                        No upcoming vesting events. All your shares have fully
+                        vested or you haven't reached your cliff yet.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportData}
+                    disabled={exporting}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export All Events
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href="/dashboard">
+                      Dashboard
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </a>
+                  </Button>
+                </CardFooter>
+              </Card>
             </TabsContent>
           </Tabs>
 

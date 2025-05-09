@@ -1,5 +1,5 @@
 // Update this section in src/app/dashboard/vesting/page.jsx
-"use client";
+
 import { useState, useEffect } from "react";
 import { saveAs } from "file-saver";
 import { format } from "date-fns";
