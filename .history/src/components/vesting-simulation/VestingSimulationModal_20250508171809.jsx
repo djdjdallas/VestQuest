@@ -53,7 +53,7 @@ export function VestingSimulationModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="max-w-4xl"
-        style={{ maxHeight: "100vh", overflow: "hidden" }}
+        style={{ maxHeight: "90vh", overflow: "hidden" }}
       >
         <DialogHeader className="pb-2">
           <DialogTitle className="text-xl">

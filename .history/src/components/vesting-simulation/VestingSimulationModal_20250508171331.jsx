@@ -17,12 +17,13 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RechartsTooltip,
+  Tooltip,
   ResponsiveContainer,
   Legend,
 } from "recharts";
 import { format } from "date-fns";
 import { Info } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function VestingSimulationModal({
   isOpen,
@@ -51,11 +52,8 @@ export function VestingSimulationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="max-w-4xl"
-        style={{ maxHeight: "100vh", overflow: "hidden" }}
-      >
-        <DialogHeader className="pb-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="text-xl">
             {simulationType === "scenario"
               ? `Simulation: ${simulationData.title}`
@@ -64,12 +62,8 @@ export function VestingSimulationModal({
           <DialogDescription>{simulationData.description}</DialogDescription>
         </DialogHeader>
 
-        {/* Using native scrolling instead of ScrollArea component */}
-        <div
-          className="overflow-y-auto pr-2"
-          style={{ maxHeight: "calc(90vh - 160px)" }}
-        >
-          <div className="space-y-6">
+        <ScrollArea className="flex-1 px-6">
+          <div className="space-y-6 py-4">
             {/* Key Metrics */}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {simulationData.metrics.map((metric) => (
@@ -113,14 +107,14 @@ export function VestingSimulationModal({
                       }}
                     />
                     <YAxis yAxisId="left" orientation="left" />
-                    {simulationData.chartConfig?.showValue && (
+                    {simulationData.chartConfig.showValue && (
                       <YAxis
                         yAxisId="right"
                         orientation="right"
                         tickFormatter={(value) => formatCurrency(value)}
                       />
                     )}
-                    <RechartsTooltip
+                    <Tooltip
                       formatter={(value, name) => {
                         if (name === "value")
                           return [formatCurrency(value), "Value"];
@@ -139,7 +133,7 @@ export function VestingSimulationModal({
                       stroke="#0f56b3"
                       yAxisId="left"
                     />
-                    {simulationData.chartConfig?.showPercentage && (
+                    {simulationData.chartConfig.showPercentage && (
                       <Line
                         type="monotone"
                         dataKey="percentageVested"
@@ -148,7 +142,7 @@ export function VestingSimulationModal({
                         yAxisId="left"
                       />
                     )}
-                    {simulationData.chartConfig?.showValue && (
+                    {simulationData.chartConfig.showValue && (
                       <Line
                         type="monotone"
                         dataKey="value"
@@ -202,7 +196,7 @@ export function VestingSimulationModal({
 
             {/* Explanatory Notes */}
             {simulationData.notes && (
-              <div className="rounded-lg bg-muted/50 p-4 text-sm mb-4">
+              <div className="rounded-lg bg-muted/50 p-4 text-sm">
                 <h3 className="mb-2 font-medium">Important Notes</h3>
                 <div className="space-y-2">
                   {simulationData.notes.map((note, index) => (
@@ -214,9 +208,9 @@ export function VestingSimulationModal({
               </div>
             )}
           </div>
-        </div>
+        </ScrollArea>
 
-        <DialogFooter className="border-t mt-2 pt-4">
+        <DialogFooter className="px-6 py-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
