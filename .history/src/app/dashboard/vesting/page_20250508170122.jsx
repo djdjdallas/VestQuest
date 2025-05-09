@@ -30,6 +30,7 @@ import { VestingTimeline } from "@/components/vesting-timeline";
 import { VestingExplainer } from "/src/components/vesting-explainer.jsx";
 import { VestingSimulationModal } from "@/components/vesting-simulation/VestingSimulationModal";
 import { useVestingSimulation } from "@/components/vesting-simulation/useVestingSimulation";
+
 import AuthLoading from "@/components/auth/AuthLoading";
 import {
   calculateDetailedVesting,
