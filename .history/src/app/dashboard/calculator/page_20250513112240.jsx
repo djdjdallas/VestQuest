@@ -34,18 +34,8 @@ import { toast } from "@/components/ui/sonner";
 import { calculateVestedShares } from "@/utils/calculations";
 
 export default function Calculator() {
-  const { grants, addGrant, loading, error, refetch } = useGrants();
+  const { grants, addGrant, loading } = useGrants();
   const [activeTab, setActiveTab] = useState("calculator");
-
-  // Add this useEffect to log grants for debugging
-  useEffect(() => {
-    console.log("Current grants:", grants);
-    console.log("Loading state:", loading);
-    console.log("Error state:", error);
-
-    // Force a refetch after component mounts
-    refetch();
-  }, [grants, loading, error, refetch]);
 
   const handleSaveSuccess = (data) => {
     toast({
@@ -55,9 +45,6 @@ export default function Calculator() {
       } grant for ${data.shares.toLocaleString()} shares has been saved.`,
       variant: "success",
     });
-
-    // Explicitly refetch grants after saving
-    refetch();
   };
 
   const handleSaveError = (error) => {
@@ -155,21 +142,7 @@ export default function Calculator() {
                     Loading your grants...
                   </p>
                 </div>
-              ) : error ? (
-                <div className="p-6 text-center">
-                  <p className="text-sm text-red-500">
-                    Error loading grants: {error}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => refetch()}
-                    className="mt-2"
-                  >
-                    Try Again
-                  </Button>
-                </div>
-              ) : grants && grants.length > 0 ? (
+              ) : grants.length > 0 ? (
                 <div className="divide-y">
                   {grants.slice(0, 5).map((grant) => (
                     <div
@@ -183,18 +156,16 @@ export default function Calculator() {
                         </span>
                       </div>
                       <div className="text-sm text-muted-foreground mb-2">
-                        {grant.shares?.toLocaleString() || 0} shares at $
-                        {(grant.strike_price || 0).toFixed(2)}
+                        {grant.shares.toLocaleString()} shares at $
+                        {grant.strike_price.toFixed(2)}
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>
-                          Current FMV: ${(grant.current_fmv || 0).toFixed(2)}
+                          Current FMV: ${grant.current_fmv.toFixed(2)}
                         </span>
                         <span>
                           Added{" "}
-                          {grant.created_at
-                            ? new Date(grant.created_at).toLocaleDateString()
-                            : "N/A"}
+                          {new Date(grant.created_at).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -217,9 +188,9 @@ export default function Calculator() {
                 </div>
               )}
 
-              {grants && grants.length > 0 && (
+              {grants.length > 0 && (
                 <div className="p-4 border-t">
-                  {/* Use Link component instead of window.location */}
+                  {/* Replace window.location.href with Link component */}
                   <Link href="/dashboard" passHref>
                     <Button
                       variant="outline"

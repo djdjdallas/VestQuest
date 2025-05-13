@@ -37,7 +37,7 @@ export default function HomePage() {
         <div className="container mx-auto flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <LineChart className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Vested</span>
+            <span className="text-xl font-bold">VestQuest</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
             <Link
@@ -227,8 +227,8 @@ export default function HomePage() {
                   Everything you need to optimize your equity
                 </h2>
                 <p className="text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Vested helps startup employees understand, track, and optimize
-                  their equity compensation.
+                  VestQuest helps startup employees understand, track, and
+                  optimize their equity compensation.
                 </p>
               </div>
             </div>
@@ -411,7 +411,7 @@ export default function HomePage() {
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   Hear from people who have made better decisions about their
-                  equity with Vested.
+                  equity with VestQuest.
                 </p>
               </div>
             </div>
@@ -432,7 +432,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground italic">
-                    "Vested helped me understand the true value of my equity
+                    "VestQuest helped me understand the true value of my equity
                     package when I was negotiating my job offer. I was able to
                     make an informed decision and negotiate better terms."
                   </p>
@@ -476,10 +476,10 @@ export default function HomePage() {
                 <CardContent>
                   <p className="text-muted-foreground italic">
                     "As a finance professional, I appreciate the depth and
-                    accuracy of Vested's calculations. The educational resources
-                    are top-notch, and the dashboard makes it easy to track
-                    multiple grants across different companies. I recommend this
-                    to everyone on my team."
+                    accuracy of VestQuest's calculations. The educational
+                    resources are top-notch, and the dashboard makes it easy to
+                    track multiple grants across different companies. I
+                    recommend this to everyone on my team."
                   </p>
                 </CardContent>
               </Card>
@@ -523,7 +523,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <LineChart className="h-5 w-5 text-primary" />
-                <span className="text-lg font-bold">Vested</span>
+                <span className="text-lg font-bold">VestQuest</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Making equity compensation transparent and understandable for
@@ -637,7 +637,7 @@ export default function HomePage() {
           </div>
           <div className="flex flex-col gap-4 sm:flex-row items-center justify-between mt-8 pt-8 border-t">
             <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Vested. All rights reserved.
+              © {new Date().getFullYear()} VestQuest. All rights reserved.
             </p>
             <div className="flex gap-4">
               <Link

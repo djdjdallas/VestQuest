@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { calculateVestedShares } from "@/utils/calculations";
 
 /**
  * Custom hook for managing equity grants
@@ -17,30 +16,21 @@ export function useGrants() {
 
   // Check if user is authenticated and fetch grants on initial load
   useEffect(() => {
-    console.log("useGrants hook initialized");
-
     const checkUserAndFetchGrants = async () => {
-      console.log("Running checkUserAndFetchGrants");
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        console.log(
-          "Auth user check result:",
-          user ? "Logged in" : "Not logged in"
-        );
         setUser(user);
 
         if (user) {
-          console.log("User is authenticated, fetching grants");
           await fetchGrants();
         } else {
-          console.log("No authenticated user, setting grants to empty array");
           setGrants([]);
           setLoading(false);
         }
       } catch (err) {
-        console.error("Error in checkUserAndFetchGrants:", err);
+        console.error("Error checking auth state:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -51,7 +41,6 @@ export function useGrants() {
     // Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state changed:", event);
         const currentUser = session?.user;
         setUser(currentUser);
 
@@ -65,7 +54,6 @@ export function useGrants() {
 
     return () => {
       if (authListener && authListener.subscription) {
-        console.log("Cleaning up auth listener subscription");
         authListener.subscription.unsubscribe();
       }
     };
@@ -75,24 +63,24 @@ export function useGrants() {
    * Fetch all grants for the current user
    */
   const fetchGrants = useCallback(async () => {
-    console.log("fetchGrants called");
     setLoading(true);
     setError(null);
 
     try {
+      console.log("Fetching grants from Supabase...");
+
       // Get current user
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
 
       if (userError) {
-        console.error("User error in fetchGrants:", userError);
         throw userError;
       }
 
       const user = userData.user;
 
       if (!user) {
-        console.log("No authenticated user found in fetchGrants");
+        console.log("No authenticated user found");
         setGrants([]);
         setLoading(false);
         return;
@@ -112,51 +100,24 @@ export function useGrants() {
         throw error;
       }
 
-      console.log(
-        "Grants fetch complete. Result count:",
-        data ? data.length : 0
-      );
-
-      if (!data || data.length === 0) {
-        console.log("No grants found for user");
-        setGrants([]);
-        setLoading(false);
-        return;
-      }
+      console.log("Grants fetched successfully:", data);
 
       // Calculate and add derived properties
-      console.log("Processing grant data...");
       const enrichedGrants = data.map((grant) => {
-        try {
-          const vested = calculateVestedShares(grant);
-          return {
-            ...grant,
-            vested_shares: vested,
-            vested_percentage: (vested / grant.shares) * 100,
-            current_value: vested * grant.current_fmv,
-          };
-        } catch (calcError) {
-          console.error(
-            "Error calculating vested shares for grant:",
-            grant.id,
-            calcError
-          );
-          return {
-            ...grant,
-            vested_shares: 0,
-            vested_percentage: 0,
-            current_value: 0,
-          };
-        }
+        const vested = calculateVestedShares(grant);
+        return {
+          ...grant,
+          vested_shares: vested,
+          vested_percentage: (vested / grant.shares) * 100,
+          current_value: vested * grant.current_fmv,
+        };
       });
 
-      console.log("Setting grants state with enriched data");
-      setGrants(enrichedGrants);
+      setGrants(enrichedGrants || []);
     } catch (err) {
-      console.error("Error in fetchGrants:", err);
+      console.error("Error fetching grants:", err);
       setError(err.message);
     } finally {
-      console.log("Setting loading to false");
       setLoading(false);
     }
   }, [supabase]);
@@ -166,14 +127,12 @@ export function useGrants() {
    * @param {Object} grantData - The grant data to add
    */
   const addGrant = async (grantData) => {
-    console.log("addGrant called with data:", grantData);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (!user) {
-        console.log("No authenticated user found in addGrant");
         return { data: null, error: "Not authenticated" };
       }
 
@@ -182,12 +141,7 @@ export function useGrants() {
         .insert([{ ...grantData, user_id: user.id }])
         .select();
 
-      if (error) {
-        console.error("Error adding grant to Supabase:", error);
-        throw error;
-      }
-
-      console.log("Grant added successfully:", data[0]);
+      if (error) throw error;
 
       // Add the new grant to state with derived properties
       const vested = calculateVestedShares(data[0]);
@@ -201,7 +155,7 @@ export function useGrants() {
       setGrants((prevGrants) => [newGrant, ...prevGrants]);
       return { data: newGrant, error: null };
     } catch (err) {
-      console.error("Error in addGrant:", err);
+      console.error("Error adding grant:", err);
       return { data: null, error: err.message };
     }
   };
@@ -212,14 +166,12 @@ export function useGrants() {
    * @param {Object} updates - The updated grant data
    */
   const updateGrant = async (id, updates) => {
-    console.log("updateGrant called for ID:", id, "with updates:", updates);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (!user) {
-        console.log("No authenticated user found in updateGrant");
         return { data: null, error: "Not authenticated" };
       }
 
@@ -230,12 +182,7 @@ export function useGrants() {
         .select()
         .single();
 
-      if (error) {
-        console.error("Error updating grant in Supabase:", error);
-        throw error;
-      }
-
-      console.log("Grant updated successfully:", data);
+      if (error) throw error;
 
       // Update the grant in state with derived properties
       const vested = calculateVestedShares(data);
@@ -252,7 +199,7 @@ export function useGrants() {
 
       return { data: updatedGrant, error: null };
     } catch (err) {
-      console.error("Error in updateGrant:", err);
+      console.error("Error updating grant:", err);
       return { data: null, error: err.message };
     }
   };
@@ -262,14 +209,12 @@ export function useGrants() {
    * @param {string} id - The ID of the grant to delete
    */
   const deleteGrant = async (id) => {
-    console.log("deleteGrant called for ID:", id);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (!user) {
-        console.log("No authenticated user found in deleteGrant");
         return { error: "Not authenticated" };
       }
 
@@ -278,18 +223,13 @@ export function useGrants() {
         .delete()
         .eq("id", id);
 
-      if (error) {
-        console.error("Error deleting grant from Supabase:", error);
-        throw error;
-      }
-
-      console.log("Grant deleted successfully");
+      if (error) throw error;
 
       // Remove the deleted grant from state
       setGrants(grants.filter((grant) => grant.id !== id));
       return { error: null };
     } catch (err) {
-      console.error("Error in deleteGrant:", err);
+      console.error("Error deleting grant:", err);
       return { error: err.message };
     }
   };
@@ -299,36 +239,19 @@ export function useGrants() {
    * @param {string} id - The ID of the grant to retrieve
    */
   const getGrantById = (id) => {
-    const grant = grants.find((grant) => grant.id === id);
-    console.log(
-      "getGrantById called for ID:",
-      id,
-      "Result:",
-      grant ? "Found" : "Not found"
-    );
-    return grant || null;
+    return grants.find((grant) => grant.id === id) || null;
   };
 
   /**
    * Calculate total value of all grants
    */
   const calculateTotalValue = () => {
-    const total = grants.reduce((total, grant) => {
-      const vested = calculateVestedShares(grant);
-      return total + vested * grant.current_fmv;
-    }, 0);
-    console.log("calculateTotalValue called, result:", total);
-    return total;
+    return grants.reduce(
+      (total, grant) =>
+        total + calculateVestedShares(grant) * grant.current_fmv,
+      0
+    );
   };
-
-  console.log(
-    "useGrants hook returning, grants count:",
-    grants.length,
-    "loading:",
-    loading,
-    "error:",
-    error
-  );
 
   return {
     grants,

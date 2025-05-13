@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { calculateVestedShares } from "@/utils/calculations";
+import GrantsDebugger from "@/hooks/GrantsDebugger";
 
 export default function Calculator() {
   const { grants, addGrant, loading, error, refetch } = useGrants();
@@ -142,13 +143,13 @@ export default function Calculator() {
         </div>
 
         <div className="space-y-6">
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="text-lg">Recent Grants</CardTitle>
               <CardDescription>Your saved equity grants</CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              {loading ? (
+            <CardContent className="p-0"> */}
+              {/* {loading ? (
                 <div className="p-6 text-center">
                   <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
                   <p className="text-sm text-muted-foreground">
@@ -215,7 +216,8 @@ export default function Calculator() {
                     Add Your First Grant
                   </Button>
                 </div>
-              )}
+              )} */}
+              <GrantsDebugger></GrantsDebugger>
 
               {grants && grants.length > 0 && (
                 <div className="p-4 border-t">
