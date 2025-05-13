@@ -8,17 +8,7 @@
  * @param {Object} taxSettings - Tax settings
  * @returns {Object} - Comprehensive tax analysis
  */
-import {
-  calculateOrdinaryIncomeTax,
-  calculateCapitalGainsTax,
-  calculateAMTExemption,
-  calculateAMT,
-  calculateDecisionFactors,
-  calculateOptimalExerciseAmount,
-  calculateISOLimit,
-  analyzeEarlyExercise,
-  formatCurrency,
-} from "./tax-calculations";
+
 export function calculateComprehensiveTax(
   grant,
   exercisePrice,

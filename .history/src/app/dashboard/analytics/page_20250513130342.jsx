@@ -1,5 +1,5 @@
 // src/pages/dashboard/analytics.jsx
-"use client";
+
 import React, { useState } from "react";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { DashboardHeader } from "@/components/dashboard-header";

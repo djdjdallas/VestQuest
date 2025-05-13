@@ -863,7 +863,7 @@ export default function EquityVisualizations() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => (window.location.href = "/dashboard/grants")}
+              onClick={() => (window.location.href = "/calculator")}
             >
               Update Grant
             </Button>

@@ -54,7 +54,6 @@ import {
   DollarSign,
   Activity,
   Clock,
-  BarChart,
 } from "lucide-react";
 
 // Custom tooltip component for charts
@@ -218,7 +217,7 @@ const ExitValueComparisonChart = ({ grant }) => {
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsBarChart data={comparisonData}>
+        <BarChart data={comparisonData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis tickFormatter={(value) => formatCurrency(value)} />
@@ -234,7 +233,7 @@ const ExitValueComparisonChart = ({ grant }) => {
           <Bar dataKey="netProceeds" name="Net Proceeds" fill="#4f46e5" />
           <Bar dataKey="totalTax" name="Tax" fill="#ef4444" />
           <Bar dataKey="exerciseCost" name="Exercise Cost" fill="#10b981" />
-        </RechartsBarChart>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
@@ -294,7 +293,7 @@ const PortfolioAllocationChart = ({ grants }) => {
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsPieChart>
+        <PieChartIcon>
           <Pie
             data={portfolioData}
             cx="50%"
@@ -320,7 +319,7 @@ const PortfolioAllocationChart = ({ grants }) => {
               <CustomTooltip formatter={(value) => formatCurrency(value)} />
             }
           />
-        </RechartsPieChart>
+        </PieChartIcon>
       </ResponsiveContainer>
     </div>
   );
@@ -410,7 +409,7 @@ const UpcomingVestingTimeline = ({ grants }) => {
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsBarChart data={upcomingEvents}>
+        <BarChart data={upcomingEvents}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="displayMonth" />
           <YAxis tickFormatter={(value) => formatCurrency(value)} />
@@ -446,7 +445,7 @@ const UpcomingVestingTimeline = ({ grants }) => {
             }}
           />
           <Bar dataKey="value" name="Vesting Value" fill="#4f46e5" />
-        </RechartsBarChart>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
@@ -580,7 +579,7 @@ const TaxImpactChart = ({ grant }) => {
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsBarChart data={taxData} layout="vertical">
+        <BarChart data={taxData} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             type="number"
@@ -595,7 +594,7 @@ const TaxImpactChart = ({ grant }) => {
           <Legend />
           <Bar dataKey="netProceeds" name="Net Proceeds" fill="#4f46e5" />
           <Bar dataKey="totalTax" name="Total Tax" fill="#ef4444" />
-        </RechartsBarChart>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
@@ -863,7 +862,7 @@ export default function EquityVisualizations() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => (window.location.href = "/dashboard/grants")}
+              onClick={() => (window.location.href = "/calculator")}
             >
               Update Grant
             </Button>
