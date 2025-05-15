@@ -17,14 +17,19 @@ export async function generatePersonalizedAdvice(
 ) {
   // Try Claude API for enhanced insights if data is available
   try {
+    // Only attempt to use Claude if we have equity data to analyze
     if (equityData && Array.isArray(equityData) && equityData.length > 0) {
+      console.log("Generating Claude insights for", equityData.length, "grants");
+      
+      // Pass market data for additional context
       const claudeResponse = await generateClaudeInsights(equityData, financialData, {
         marketConditions: "stable",
         industryTrends: calculationResults?.industry || "technology"
       });
       
-      // If Claude API returns valid insights, use them
+      // If Claude returns valid insights, use them
       if (claudeResponse && claudeResponse.insights && claudeResponse.insights.length > 0) {
+        console.log("Using Claude-generated insights");
         return claudeResponse;
       }
     }
@@ -32,6 +37,9 @@ export async function generatePersonalizedAdvice(
     console.error("Error using Claude API for insights:", error);
     // Continue to rule-based advice if Claude API fails
   }
+  
+  // Log fallback message 
+  console.log("Using rule-based advice generation");
   
   // Rule-based advice generation (fallback)
   const insights = [];

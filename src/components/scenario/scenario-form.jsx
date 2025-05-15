@@ -117,16 +117,23 @@ export function ScenarioForm({
     }
   }, [priceMultiplier, selectedGrantData, form, onFormChange]);
 
-  // Send form values to parent when they change
+  // Send form values to parent when they change, but debounce to prevent infinite loops
   useEffect(() => {
+    // Only call onFormChange if we have valid data to preview
     if (
       onFormChange &&
       watchedValues.grant_id &&
       watchedValues.share_price > 0
     ) {
-      onFormChange(form.getValues());
+      // Create a timeout to debounce the updates
+      const timeoutId = setTimeout(() => {
+        onFormChange(form.getValues());
+      }, 300); // 300ms debounce
+
+      // Cleanup timeout on unmount or before next effect run
+      return () => clearTimeout(timeoutId);
     }
-  }, [watchedValues, onFormChange, form]);
+  }, [watchedValues.grant_id, watchedValues.share_price, watchedValues.shares_included, onFormChange, form]);
 
   // Handle form submission
   const handleSubmit = (values) => {
@@ -453,10 +460,11 @@ export function ScenarioForm({
                 />
               </FormControl>
               <FormMessage />
-              <FormDescription>
+              {/* Replace FormDescription with regular div to avoid p > div nesting */}
+              <div className="text-sm text-muted-foreground mt-1">
                 {selectedGrantData && (
                   <>
-                    <div className="flex justify-between items-center mt-1">
+                    <div className="flex justify-between items-center">
                       <span>
                         {field.value} of{" "}
                         {selectedGrantData.shares.toLocaleString()} total shares
@@ -482,7 +490,7 @@ export function ScenarioForm({
                       </Button>
                     </div>
                     {form.watch("share_price") > 0 && field.value > 0 && (
-                      <div className="text-sm mt-2">
+                      <div className="mt-2">
                         Estimated value: $
                         {(
                           form.watch("share_price") * field.value
@@ -491,7 +499,7 @@ export function ScenarioForm({
                     )}
                   </>
                 )}
-              </FormDescription>
+              </div>
             </FormItem>
           )}
         />

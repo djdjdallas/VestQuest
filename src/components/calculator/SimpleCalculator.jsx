@@ -29,6 +29,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { InfoIcon, ArrowRightIcon, CalculatorIcon } from "lucide-react";
 
@@ -110,23 +111,24 @@ export function SimpleCalculator() {
   };
 
   return (
-    <Card className="border-2">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <CalculatorIcon className="h-5 w-5 text-primary" />
-          <CardTitle>Equity Value Calculator</CardTitle>
-        </div>
-        <CardDescription>
-          Calculate the potential value of your stock options under different
-          scenarios
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="basic">Basic Inputs</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
-          </TabsList>
+    <TooltipProvider>
+      <Card className="border-2">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CalculatorIcon className="h-5 w-5 text-primary" />
+            <CardTitle>Equity Value Calculator</CardTitle>
+          </div>
+          <CardDescription>
+            Calculate the potential value of your stock options under different
+            scenarios
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic">Basic Inputs</TabsTrigger>
+              <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
+            </TabsList>
 
           <TabsContent value="basic" className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
@@ -449,5 +451,6 @@ export function SimpleCalculator() {
         )}
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }

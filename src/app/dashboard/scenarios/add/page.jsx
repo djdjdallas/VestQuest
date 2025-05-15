@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { ScenarioForm } from "@/components/scenario/scenario-form";
+import { ScenarioForm } from "@/components/scenario/ScenarioForm";
 import { useGrants } from "@/hooks/useGrants";
 import { format } from "date-fns";
 import { calculateScenarioResult } from "@/utils/calculations";
@@ -32,9 +32,11 @@ export default function AddScenarioPage() {
 
   // Get default values for the form based on available grants - memoized to prevent recalculation
   const defaultValues = useMemo(() => {
+    console.log("Computing defaultValues, grants:", grants);
     const defaultGrant = grants?.length > 0 ? grants[0] : null;
+    console.log("Selected defaultGrant:", defaultGrant);
 
-    return {
+    const values = {
       name: defaultGrant
         ? `${defaultGrant.company_name} Exit at $${(
             defaultGrant.current_fmv * 3
@@ -50,22 +52,39 @@ export default function AddScenarioPage() {
       grant_id: defaultGrant ? defaultGrant.id : "",
       shares_included: defaultGrant ? defaultGrant.shares : 1000,
     };
+    
+    console.log("Computed form default values:", values);
+    return values;
   }, [grants]);
 
   // Handle preview calculations - use useCallback to prevent recreation on each render
   const handlePreview = useCallback(
     (formData) => {
       try {
+        console.log("handlePreview called with formData:", formData);
+        
         if (!formData.grant_id) {
+          console.log("No grant_id in formData, skipping preview calculation");
           setPreviewData(null);
           return;
         }
 
+        console.log("Looking for grant with id:", formData.grant_id, "in grants:", grants);
         const selectedGrant = grants?.find((g) => g.id === formData.grant_id);
+        
         if (!selectedGrant) {
+          console.warn("Selected grant not found!", formData.grant_id);
           setPreviewData(null);
           return;
         }
+
+        console.log("Found selectedGrant:", selectedGrant);
+        console.log("Calculating scenario with params:", {
+          grant: selectedGrant,
+          price: formData.share_price,
+          shares: formData.shares_included,
+          name: formData.name
+        });
 
         const result = calculateScenarioResult(
           selectedGrant,
@@ -74,6 +93,7 @@ export default function AddScenarioPage() {
           formData.name
         );
 
+        console.log("Preview calculation result:", result);
         setPreviewData(result);
       } catch (err) {
         console.error("Error calculating preview:", err);
@@ -140,12 +160,12 @@ export default function AddScenarioPage() {
     [previewData, router, supabase]
   );
 
-  if (grantsLoading) {
-    return <AuthLoading />;
-  }
-
-  // Memoize the preview card to prevent unnecessary rerenders
-  const PreviewCard = () => {
+  // Always define useMemo hook, regardless of loading state
+  const previewCardContent = useMemo(() => {
+    if (grantsLoading) {
+      return <AuthLoading />;
+    }
+    
     if (!previewData) {
       return (
         <Card>
@@ -217,7 +237,12 @@ export default function AddScenarioPage() {
         </CardFooter>
       </Card>
     );
-  };
+  }, [previewData, grants, router, grantsLoading]);
+  
+  // Early return moved inside the render function to maintain hook order
+  if (grantsLoading) {
+    return <AuthLoading />;
+  }
 
   return (
     <DashboardShell>
@@ -257,7 +282,7 @@ export default function AddScenarioPage() {
         </div>
 
         <div>
-          <PreviewCard />
+          {previewCardContent}
         </div>
       </div>
     </DashboardShell>

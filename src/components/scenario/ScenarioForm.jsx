@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -85,6 +85,67 @@ export function ScenarioForm({
       shares_included: 0,
     },
   });
+  
+  // Handle grant selection - define before it's used
+  const handleGrantChange = useCallback((grantId) => {
+    console.log("handleGrantChange called with grantId:", grantId);
+    
+    if (!grantId) {
+      console.log("No grantId provided, returning early");
+      return;
+    }
+
+    // Find the selected grant
+    console.log("Looking for grant in grants array:", grants);
+    const selectedGrant = grants.find((grant) => grant.id === grantId);
+    console.log("Found selected grant:", selectedGrant);
+    
+    if (selectedGrant) {
+      console.log("Setting selectedGrantData state");
+      setSelectedGrantData(selectedGrant);
+      setFormValuesChanged(false);
+
+      // Default to including all shares from the grant
+      console.log("Setting shares_included value:", selectedGrant.shares);
+      form.setValue("shares_included", selectedGrant.shares);
+
+      // Set default share price based on multiplier
+      const newPrice = selectedGrant.current_fmv * priceMultiplier;
+      console.log("Setting share_price value:", newPrice);
+      form.setValue("share_price", parseFloat(newPrice.toFixed(2)));
+
+      // Update scenario name with the grant and price info
+      const suggestedName = `${
+        selectedGrant.company_name
+      } Exit at $${newPrice.toFixed(2)}`;
+      const currentName = form.getValues("name");
+
+      // Only auto-update the name if it's empty or follows our naming pattern
+      if (!currentName || currentName.includes("Exit at $")) {
+        console.log("Setting scenario name:", suggestedName);
+        form.setValue("name", suggestedName);
+      }
+    } else {
+      console.warn("Selected grant not found in grants array for ID:", grantId);
+    }
+  }, [grants, form, priceMultiplier]);
+
+  // Initialize selected grant if default value is provided
+  useEffect(() => {
+    if (initialData?.grant_id && grants?.length > 0) {
+      console.log("Found initial grant_id:", initialData.grant_id);
+      const grant = grants.find(g => g.id === initialData.grant_id);
+      if (grant) {
+        console.log("Setting selectedGrantData from initialData");
+        setSelectedGrantData(grant);
+      }
+    } else if (grants?.length > 0 && grants[0]?.id) {
+      // Auto-select first grant for better UX
+      console.log("Auto-selecting first grant:", grants[0]);
+      handleGrantChange(grants[0].id);
+      form.setValue("grant_id", grants[0].id);
+    }
+  }, [grants, initialData, form, handleGrantChange]);
 
   // Watch form values for real-time updates
   const watchedValues = form.watch();
@@ -146,35 +207,6 @@ export function ScenarioForm({
     onSubmit(values);
   };
 
-  // Handle grant selection
-  const handleGrantChange = (grantId) => {
-    if (!grantId) return;
-
-    // Find the selected grant
-    const selectedGrant = grants.find((grant) => grant.id === grantId);
-    if (selectedGrant) {
-      setSelectedGrantData(selectedGrant);
-      setFormValuesChanged(false);
-
-      // Default to including all shares from the grant
-      form.setValue("shares_included", selectedGrant.shares);
-
-      // Set default share price based on multiplier
-      const newPrice = selectedGrant.current_fmv * priceMultiplier;
-      form.setValue("share_price", parseFloat(newPrice.toFixed(2)));
-
-      // Update scenario name with the grant and price info
-      const suggestedName = `${
-        selectedGrant.company_name
-      } Exit at $${newPrice.toFixed(2)}`;
-      const currentName = form.getValues("name");
-
-      // Only auto-update the name if it's empty or follows our naming pattern
-      if (!currentName || currentName.includes("Exit at $")) {
-        form.setValue("name", suggestedName);
-      }
-    }
-  };
 
   // Get the icon for the selected exit type
   const getExitTypeIcon = (type) => {
@@ -222,40 +254,46 @@ export function ScenarioForm({
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <Select
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  handleGrantChange(value);
-                }}
-                defaultValue={field.value}
-                value={field.value}
-              >
+              {/* Custom dropdown instead of using Select component */}
+              <div className="relative">
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a grant" />
-                  </SelectTrigger>
+                  <select
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                    value={field.value || ""}
+                    onChange={(e) => {
+                      console.log("Native select onChange:", e.target.value);
+                      field.onChange(e.target.value);
+                      handleGrantChange(e.target.value);
+                    }}
+                  >
+                    <option value="" disabled>Select a grant</option>
+                    {grants && grants.length > 0 ? (
+                      grants.map((grant) => (
+                        <option 
+                          key={grant.id} 
+                          value={grant.id}
+                        >
+                          {grant.company_name} - {grant.grant_type || "Unknown"} (
+                          {(grant.shares || 0).toLocaleString()} shares)
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>No grants found</option>
+                    )}
+                  </select>
                 </FormControl>
-                <SelectContent>
-                  {grants.length > 0 ? (
-                    grants.map((grant) => (
-                      <SelectItem key={grant.id} value={grant.id}>
-                        {grant.company_name} - {grant.grant_type} (
-                        {grant.shares.toLocaleString()} shares)
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no_grants" disabled>
-                      No grants found
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                {grants && grants.length > 0 && (
+                  <div className="absolute top-0 right-0 -mt-5 text-xs text-muted-foreground">
+                    {grants.length} grant{grants.length !== 1 ? "s" : ""} available
+                  </div>
+                )}
+              </div>
               <FormMessage />
               {selectedGrantData && (
-                <FormDescription>
+                <div className="text-sm text-muted-foreground">
                   Current FMV: ${selectedGrantData.current_fmv?.toFixed(2)} |
                   Strike: ${selectedGrantData.strike_price?.toFixed(2)}
-                </FormDescription>
+                </div>
               )}
             </FormItem>
           )}
@@ -486,7 +524,8 @@ export function ScenarioForm({
                 />
               </FormControl>
               <FormMessage />
-              <FormDescription>
+              {/* Replace FormDescription with div to avoid p > div nesting */}
+              <div className="text-sm text-muted-foreground">
                 {selectedGrantData && (
                   <>
                     <div className="flex justify-between items-center mt-1">
@@ -518,7 +557,7 @@ export function ScenarioForm({
                       </Button>
                     </div>
                     {form.watch("share_price") > 0 && field.value > 0 && (
-                      <div className="text-sm mt-2">
+                      <div className="mt-2">
                         Estimated value: $
                         {(
                           form.watch("share_price") * field.value
@@ -527,7 +566,7 @@ export function ScenarioForm({
                     )}
                   </>
                 )}
-              </FormDescription>
+              </div>
             </FormItem>
           )}
         />

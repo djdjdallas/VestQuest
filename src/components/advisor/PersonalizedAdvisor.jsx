@@ -14,7 +14,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { generatePersonalizedAdvice } from "@/utils/advisorEngine";
 
-export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
+export function PersonalizedAdvisor({ grants = [], userFinancialData = null }) {
+  // Ensure we always have an object for financial data
+  const financialData = userFinancialData || {};
   const [advice, setAdvice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [usingAI, setUsingAI] = useState(false);
@@ -41,7 +43,7 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
           },
           amt: {
             netAMTDue: grants.some((g) => g.grant_type === "ISO")
-              ? estimateAMTImpact(grants, userFinancialData.income || 150000)
+              ? estimateAMTImpact(grants, financialData.income || 150000)
               : 0,
           },
         };
@@ -49,7 +51,7 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
         // The advisorEngine now returns a Promise
         const adviceResult = await generatePersonalizedAdvice(
           grants,
-          userFinancialData,
+          financialData,
           calculationResults
         );
         

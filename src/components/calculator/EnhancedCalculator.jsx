@@ -22,6 +22,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import {
   LineChart,
@@ -491,6 +492,7 @@ export default function EnhancedCalculator() {
   };
 
   return (
+    <TooltipProvider>
     <Card className="border-2">
       <CardHeader>
         <div className="flex items-center gap-2">
@@ -1460,5 +1462,6 @@ export default function EnhancedCalculator() {
         </div>
       </CardFooter>
     </Card>
+    </TooltipProvider>
   );
 }

@@ -541,7 +541,6 @@ export default function ScenarioDetailsPage() {
                         (results.exercise_cost / results.gross_proceeds) * 100
                       }
                       className="h-2 bg-blue-200"
-                      indicatorColor="bg-blue-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -558,7 +557,6 @@ export default function ScenarioDetailsPage() {
                         (results.tax_liability / results.gross_proceeds) * 100
                       }
                       className="h-2 bg-red-200"
-                      indicatorColor="bg-red-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -575,7 +573,6 @@ export default function ScenarioDetailsPage() {
                         (results.net_proceeds / results.gross_proceeds) * 100
                       }
                       className="h-2 bg-green-200"
-                      indicatorColor="bg-green-600"
                     />
                   </div>
                 </div>

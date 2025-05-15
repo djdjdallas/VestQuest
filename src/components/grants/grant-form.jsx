@@ -31,6 +31,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { GRANT_TYPES, VESTING_SCHEDULES } from "@/utils/constants";
 
@@ -131,9 +132,10 @@ export function GrantForm({ initialData, onSubmit, isLoading }) {
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <Tabs defaultValue="basic" className="w-full">
+    <TooltipProvider>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid grid-cols-2">
             <TabsTrigger value="basic">Basic Information</TabsTrigger>
             <TabsTrigger value="advanced">Advanced Settings</TabsTrigger>
@@ -593,5 +595,6 @@ export function GrantForm({ initialData, onSubmit, isLoading }) {
         </div>
       </form>
     </Form>
+    </TooltipProvider>
   );
 }

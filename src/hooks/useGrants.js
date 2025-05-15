@@ -99,19 +99,50 @@ export function useGrants() {
 
   // Check if user is authenticated and fetch grants on initial load
   useEffect(() => {
-    console.log("useGrants hook initialized");
+    console.log("useGrants hook initialized - MODIFIED LOG");
+
+    // Use a mock grant if needed for testing
+    const useMockData = false; // Set to true to test with mock data
+    if (useMockData) {
+      console.log("USING MOCK GRANT DATA FOR TESTING");
+      const mockGrants = [
+        {
+          id: "mock-1",
+          company_name: "MockCorp",
+          grant_type: "ISO",
+          shares: 10000,
+          strike_price: 1.5,
+          current_fmv: 5,
+          grant_date: "2023-01-01",
+          vesting_start_date: "2023-01-01",
+          vesting_end_date: "2027-01-01",
+          user_id: "mock-user",
+          vested_shares: 2500,
+          vested_percentage: 25,
+          current_value: 12500
+        }
+      ];
+      setGrants(mockGrants);
+      setLoading(false);
+      return; // Skip the real data fetch
+    }
 
     // Immediate function to fetch grants
     const initialFetch = async () => {
       try {
+        console.log("Starting initialFetch in useGrants");
         const {
           data: { user },
         } = await supabase.auth.getUser();
+        
+        console.log("Auth user result:", user ? "User logged in" : "No user");
         setUser(user);
 
         if (user) {
+          console.log("User authenticated, fetching grants");
           await fetchGrants();
         } else {
+          console.log("No authenticated user, setting empty grants array");
           setGrants([]);
           setLoading(false);
         }
