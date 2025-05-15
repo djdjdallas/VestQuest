@@ -464,6 +464,82 @@ export function calculateTaxes(
 }
 
 /**
+ * Calculate scenario result combining all aspects
+ * @param {Object} grant - The equity grant object
+ * @param {number} exitValue - Exit price per share
+ * @param {number} sharesToExercise - Number of shares to exercise
+ * @param {string} scenarioName - Name for the scenario
+ * @param {Object} additionalSettings - Additional calculation settings
+ * @returns {Object} - Scenario calculation results
+ */
+export function calculateScenarioResult(
+  grant,
+  exitValue,
+  sharesToExercise,
+  scenarioName,
+  additionalSettings = {}
+) {
+  if (!grant || !exitValue || !sharesToExercise) {
+    return {
+      scenario_name: scenarioName || "Unnamed Scenario",
+      exit_value: exitValue || 0,
+      shares_exercised: sharesToExercise || 0,
+      exercise_cost: 0,
+      gross_proceeds: 0,
+      tax_liability: 0,
+      net_proceeds: 0,
+      roi_percentage: 0,
+      effective_tax_rate: 0,
+    };
+  }
+
+  // Calculate exercise cost
+  const exerciseCost = calculateExerciseCost(
+    sharesToExercise,
+    grant.strike_price
+  );
+
+  // Calculate gross proceeds
+  const grossProceeds = sharesToExercise * exitValue;
+
+  // Calculate tax liability (simplified version)
+  const isLongTerm = additionalSettings.isLongTerm || false;
+  const taxes = calculateTaxes(
+    grant,
+    grant.strike_price,
+    exitValue,
+    sharesToExercise,
+    isLongTerm,
+    additionalSettings
+  );
+
+  // Calculate net proceeds
+  const netProceeds = grossProceeds - exerciseCost - taxes.total_tax;
+
+  // Calculate ROI
+  const roiPercentage =
+    exerciseCost > 0 ? ((netProceeds - exerciseCost) / exerciseCost) * 100 : 0;
+
+  // Return the complete scenario result
+  return {
+    scenario_name: scenarioName || "Unnamed Scenario",
+    exit_value: exitValue,
+    shares_exercised: sharesToExercise,
+    exercise_cost: exerciseCost,
+    gross_proceeds: grossProceeds,
+    tax_liability: taxes.total_tax,
+    net_proceeds: netProceeds,
+    roi_percentage: roiPercentage,
+    effective_tax_rate: grossProceeds > 0 ? taxes.total_tax / grossProceeds : 0,
+    tax_details: {
+      federal_tax: taxes.federal_tax,
+      state_tax: taxes.state_tax,
+      amt_liability: taxes.amt_liability,
+    },
+  };
+}
+
+/**
  * Calculate federal income tax using progressive tax brackets
  * @param {number} amount - Taxable amount
  * @param {number} baseIncome - Base income before the additional amount

@@ -323,6 +323,126 @@ const TAX_CONSTANTS = {
 };
 
 /**
+ * Calculate the total number of vested shares
+ * @param {Object} grant - The equity grant object
+ * @returns {number} - The number of vested shares
+ */
+export function calculateVestedShares(grant) {
+  if (!grant) return 0;
+
+  const now = new Date();
+  const vestingStart = new Date(grant.vesting_start_date);
+  const totalShares = grant.shares || 0;
+
+  // If no vesting start date or no shares, return 0
+  if (!vestingStart || totalShares <= 0) return 0;
+
+  // Get vesting end date (with fallback to 4 years from start if missing)
+  const vestingEndInput = grant.vesting_end_date || null;
+  const vestingEnd = vestingEndInput
+    ? new Date(vestingEndInput)
+    : new Date(
+        vestingStart.getFullYear() + 4,
+        vestingStart.getMonth(),
+        vestingStart.getDate()
+      );
+
+  // Get cliff date (with fallback to 1 year from start if missing)
+  const cliffDateInput = grant.vesting_cliff_date || null;
+  const cliffDate = cliffDateInput
+    ? new Date(cliffDateInput)
+    : new Date(
+        vestingStart.getFullYear() + 1,
+        vestingStart.getMonth(),
+        vestingStart.getDate()
+      );
+
+  // Calculate months since vesting start
+  const monthsSinceStart =
+    (now.getFullYear() - vestingStart.getFullYear()) * 12 +
+    (now.getMonth() - vestingStart.getMonth());
+
+  // If vesting hasn't started yet, return 0
+  if (monthsSinceStart <= 0) return 0;
+
+  // If the vesting end date has passed, return total shares (fully vested)
+  if (now >= vestingEnd) return totalShares;
+
+  // Handle cliff vesting
+  if (now < cliffDate) {
+    return 0; // Before cliff date, nothing is vested
+  }
+
+  // Calculate vested percentage based on vesting schedule
+  let vestedPercentage = 0;
+  const vestingSchedule = grant.vesting_schedule || "monthly";
+
+  // Calculate total vesting period in months
+  const totalVestingMonths =
+    (vestingEnd.getFullYear() - vestingStart.getFullYear()) * 12 +
+    (vestingEnd.getMonth() - vestingStart.getMonth());
+
+  if (totalVestingMonths <= 0) return totalShares; // Safety check
+
+  if (vestingSchedule === "monthly") {
+    // Simple monthly vesting after cliff
+    if (now >= cliffDate) {
+      // Calculate cliff percentage (usually 25% for 1-year cliff)
+      const cliffMonths =
+        (cliffDate.getFullYear() - vestingStart.getFullYear()) * 12 +
+        (cliffDate.getMonth() - vestingStart.getMonth());
+
+      const cliffPercentage = cliffMonths / totalVestingMonths;
+
+      // Calculate additional vesting after cliff
+      const monthsAfterCliff = monthsSinceStart - cliffMonths;
+      const remainingPercentage = 1 - cliffPercentage;
+      const monthlyRate =
+        remainingPercentage / (totalVestingMonths - cliffMonths);
+
+      vestedPercentage = Math.min(
+        cliffPercentage + monthsAfterCliff * monthlyRate,
+        1
+      );
+    }
+  } else if (vestingSchedule === "quarterly") {
+    // Quarterly vesting
+    const quartersSinceStart = Math.floor(monthsSinceStart / 3);
+    const totalQuarters = Math.ceil(totalVestingMonths / 3);
+    vestedPercentage = Math.min(quartersSinceStart / totalQuarters, 1);
+  } else if (vestingSchedule === "yearly") {
+    // Annual vesting
+    const yearsSinceStart = Math.floor(monthsSinceStart / 12);
+    const totalYears = Math.ceil(totalVestingMonths / 12);
+    vestedPercentage = Math.min(yearsSinceStart / totalYears, 1);
+  } else {
+    // Default to simple linear vesting
+    vestedPercentage = Math.min(monthsSinceStart / totalVestingMonths, 1);
+  }
+
+  // RSUs may require liquidity event
+  if (grant.grant_type === "RSU" && grant.liquidity_event_only === true) {
+    return 0; // Double-trigger RSUs don't vest until liquidity event
+  }
+
+  // Calculate and return vested shares (ensuring it's a valid number)
+  const vestedShares = Math.floor(totalShares * vestedPercentage);
+  return isNaN(vestedShares) ? 0 : vestedShares;
+}
+
+/**
+ * Calculate exercise cost for options
+ * @param {number} shares - Number of shares to exercise
+ * @param {number} strikePrice - Strike price per share
+ * @returns {number} - Total exercise cost
+ */
+export function calculateExerciseCost(shares, strikePrice) {
+  const numShares = Number(shares) || 0;
+  const numStrikePrice = Number(strikePrice) || 0;
+  return numShares * numStrikePrice;
+}
+
+/**
  * Calculate current value of shares
  * @param {number} shares - Number of shares
  * @param {number} currentFMV - Current fair market value per share
@@ -460,6 +580,82 @@ export function calculateTaxes(
     amt_liability: amtTax,
     total_tax: totalTax,
     effective_rate: spread > 0 ? totalTax / spread : 0,
+  };
+}
+
+/**
+ * Calculate scenario result combining all aspects
+ * @param {Object} grant - The equity grant object
+ * @param {number} exitValue - Exit price per share
+ * @param {number} sharesToExercise - Number of shares to exercise
+ * @param {string} scenarioName - Name for the scenario
+ * @param {Object} additionalSettings - Additional calculation settings
+ * @returns {Object} - Scenario calculation results
+ */
+export function calculateScenarioResult(
+  grant,
+  exitValue,
+  sharesToExercise,
+  scenarioName,
+  additionalSettings = {}
+) {
+  if (!grant || !exitValue || !sharesToExercise) {
+    return {
+      scenario_name: scenarioName || "Unnamed Scenario",
+      exit_value: exitValue || 0,
+      shares_exercised: sharesToExercise || 0,
+      exercise_cost: 0,
+      gross_proceeds: 0,
+      tax_liability: 0,
+      net_proceeds: 0,
+      roi_percentage: 0,
+      effective_tax_rate: 0,
+    };
+  }
+
+  // Calculate exercise cost
+  const exerciseCost = calculateExerciseCost(
+    sharesToExercise,
+    grant.strike_price
+  );
+
+  // Calculate gross proceeds
+  const grossProceeds = sharesToExercise * exitValue;
+
+  // Calculate tax liability (simplified version)
+  const isLongTerm = additionalSettings.isLongTerm || false;
+  const taxes = calculateTaxes(
+    grant,
+    grant.strike_price,
+    exitValue,
+    sharesToExercise,
+    isLongTerm,
+    additionalSettings
+  );
+
+  // Calculate net proceeds
+  const netProceeds = grossProceeds - exerciseCost - taxes.total_tax;
+
+  // Calculate ROI
+  const roiPercentage =
+    exerciseCost > 0 ? ((netProceeds - exerciseCost) / exerciseCost) * 100 : 0;
+
+  // Return the complete scenario result
+  return {
+    scenario_name: scenarioName || "Unnamed Scenario",
+    exit_value: exitValue,
+    shares_exercised: sharesToExercise,
+    exercise_cost: exerciseCost,
+    gross_proceeds: grossProceeds,
+    tax_liability: taxes.total_tax,
+    net_proceeds: netProceeds,
+    roi_percentage: roiPercentage,
+    effective_tax_rate: grossProceeds > 0 ? taxes.total_tax / grossProceeds : 0,
+    tax_details: {
+      federal_tax: taxes.federal_tax,
+      state_tax: taxes.state_tax,
+      amt_liability: taxes.amt_liability,
+    },
   };
 }
 

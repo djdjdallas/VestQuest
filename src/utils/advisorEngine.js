@@ -1,17 +1,39 @@
 // src/utils/advisorEngine.js
+import { generateClaudeInsights } from './claudeApiService';
 
 /**
  * Generate personalized advice based on financial situation and equity data
+ * This function tries to use the Claude API first, and falls back to rule-based advice
+ * 
  * @param {Object} equityData - User's equity grants and scenarios
  * @param {Object} financialData - User's broader financial situation
  * @param {Object} calculationResults - Results from equity calculations
  * @returns {Object} - Personalized advice with multiple insights
  */
-export function generatePersonalizedAdvice(
+export async function generatePersonalizedAdvice(
   equityData,
   financialData = {},
   calculationResults = {}
 ) {
+  // Try Claude API for enhanced insights if data is available
+  try {
+    if (equityData && Array.isArray(equityData) && equityData.length > 0) {
+      const claudeResponse = await generateClaudeInsights(equityData, financialData, {
+        marketConditions: "stable",
+        industryTrends: calculationResults?.industry || "technology"
+      });
+      
+      // If Claude API returns valid insights, use them
+      if (claudeResponse && claudeResponse.insights && claudeResponse.insights.length > 0) {
+        return claudeResponse;
+      }
+    }
+  } catch (error) {
+    console.error("Error using Claude API for insights:", error);
+    // Continue to rule-based advice if Claude API fails
+  }
+  
+  // Rule-based advice generation (fallback)
   const insights = [];
 
   // Check if we have enough financial data to generate meaningful advice

@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { Info, AlertCircle, Check, Clock, ArrowRight } from "lucide-react";
+import { Info, AlertCircle, Check, Clock, ArrowRight, RefreshCw, Zap } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { generatePersonalizedAdvice } from "@/utils/advisorEngine";
 
 export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
   const [advice, setAdvice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [usingAI, setUsingAI] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     // Generate personalized advice using the advisor engine
-    const generateAdvice = () => {
+    const generateAdvice = async () => {
       try {
         setLoading(true);
         // Use the advisor engine to generate advice based on the grants and financial data
@@ -42,11 +46,15 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
           },
         };
 
-        const adviceResult = generatePersonalizedAdvice(
+        // The advisorEngine now returns a Promise
+        const adviceResult = await generatePersonalizedAdvice(
           grants,
           userFinancialData,
           calculationResults
         );
+        
+        // Determine if AI was used based on data structure or properties
+        setUsingAI(adviceResult.powered_by_claude || adviceResult.insights.length > 2);
         setAdvice(adviceResult);
       } catch (error) {
         console.error("Error generating advice:", error);
@@ -68,13 +76,15 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
             "Consider consulting with a financial advisor about your equity",
           ],
         });
+        setUsingAI(false);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     };
 
     generateAdvice();
-  }, [grants, userFinancialData]);
+  }, [grants, userFinancialData, refreshing]);
 
   // Simple estimate of potential AMT impact for ISOs
   const estimateAMTImpact = (grants, income = 150000) => {
@@ -98,6 +108,9 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
         <p className="text-muted-foreground">
           Generating personalized recommendations...
         </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Using advanced AI to analyze your equity portfolio
+        </p>
       </div>
     );
   }
@@ -106,6 +119,41 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
     <div className="space-y-6">
       {advice?.insights?.length > 0 ? (
         <>
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-base">Strategic Insights</h3>
+              
+              {usingAI && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className="bg-purple-100 text-purple-800 flex items-center gap-1">
+                        <Zap className="h-3 w-3" />
+                        <span>AI Powered</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs max-w-xs">
+                        These recommendations are generated using Claude, an advanced AI assistant
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs" 
+              onClick={() => setRefreshing(true)}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+
           <div className="space-y-4">
             {advice.insights.map((insight, index) => (
               <Card
@@ -150,6 +198,14 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
               )}
             </ul>
           </div>
+          
+          {advice.summary && (
+            <CardFooter className="px-0 pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium">Summary:</span> {advice.summary}
+              </p>
+            </CardFooter>
+          )}
         </>
       ) : (
         <Alert>
@@ -163,6 +219,12 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = {} }) {
             Update Financial Profile
           </Button>
         </Alert>
+      )}
+      
+      {usingAI && (
+        <div className="text-xs text-right text-muted-foreground mt-2">
+          Powered by Claude AI
+        </div>
       )}
     </div>
   );

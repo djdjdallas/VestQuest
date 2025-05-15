@@ -3,23 +3,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import AuthLoading from "@/components/auth/AuthLoading";
 import { calculateVestedShares } from "@/utils/calculations";
 import EnhancedGrantsDashboard from "@/components/grants/enhanced-grants-dashboard";
 import { useFinancialProfile } from "@/hooks/useFinancialProfile";
+
 export default function GrantsPage() {
   const [grants, setGrants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
   const supabase = createClient();
+  const { financialProfile, isLoading: isProfileLoading } = useFinancialProfile();
 
   // Fetch grants
   const fetchGrants = useCallback(async () => {
@@ -209,12 +212,18 @@ export default function GrantsPage() {
         heading="Equity Grants"
         text="Manage all your equity grants in one place."
       >
-        <Button asChild>
-          <Link href="/dashboard/grants/add">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Grant
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-purple-50 text-purple-800 flex items-center gap-1">
+            <Zap className="h-3 w-3" />
+            <span>AI Powered</span>
+          </Badge>
+          <Button asChild>
+            <Link href="/dashboard/grants/add">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Grant
+            </Link>
+          </Button>
+        </div>
       </DashboardHeader>
 
       <EnhancedGrantsDashboard
@@ -225,6 +234,7 @@ export default function GrantsPage() {
         onDeleteGrant={handleDeleteGrant}
         onExportVestingSchedule={handleExportVestingSchedule}
         onExportGrantsData={handleExportGrantsData}
+        userFinancialData={financialProfile || {}}
       />
     </DashboardShell>
   );

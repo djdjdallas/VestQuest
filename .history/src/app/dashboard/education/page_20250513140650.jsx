@@ -1,7 +1,7 @@
 // src/app/dashboard/education/page.jsx
 "use client";
 
-import { useState, useEffect, useRef } from "react"; // Added useRef
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { EducationCard } from "@/components/education/EducationCard";
 import { GlossaryItem } from "@/components/education/GlossaryItem";
@@ -10,10 +10,10 @@ import { InteractiveEducation } from "@/components/education/InteractiveEducatio
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, ChevronUp } from "lucide-react"; // Added ChevronUp for scroll button
+import { Search, Loader2 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client"; // Changed to use client method
 
 export default function Education() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,66 +21,7 @@ export default function Education() {
   const [glossaryTerms, setGlossaryTerms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("interactive");
-  const [showScrollButton, setShowScrollButton] = useState(false);
-
-  // Create refs for scrollable content
-  const basicsContentRef = useRef(null);
-  const glossaryContentRef = useRef(null);
-
-  const supabase = createClient();
-
-  // Handle scroll event to show/hide scroll-to-top button
-  useEffect(() => {
-    const handleScroll = () => {
-      // Get the current scroll position of the active tab content
-      const currentRef =
-        activeTab === "basics"
-          ? basicsContentRef.current
-          : activeTab === "glossary"
-          ? glossaryContentRef.current
-          : null;
-
-      if (currentRef && currentRef.scrollTop > 300) {
-        setShowScrollButton(true);
-      } else {
-        setShowScrollButton(false);
-      }
-    };
-
-    // Add scroll event listeners to the content refs
-    const basicsContent = basicsContentRef.current;
-    const glossaryContent = glossaryContentRef.current;
-
-    if (basicsContent) basicsContent.addEventListener("scroll", handleScroll);
-    if (glossaryContent)
-      glossaryContent.addEventListener("scroll", handleScroll);
-
-    return () => {
-      // Clean up event listeners
-      if (basicsContent)
-        basicsContent.removeEventListener("scroll", handleScroll);
-      if (glossaryContent)
-        glossaryContent.removeEventListener("scroll", handleScroll);
-    };
-  }, [activeTab]);
-
-  // Function to scroll to top
-  const scrollToTop = () => {
-    const currentRef =
-      activeTab === "basics"
-        ? basicsContentRef.current
-        : activeTab === "glossary"
-        ? glossaryContentRef.current
-        : null;
-
-    if (currentRef) {
-      currentRef.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }
-  };
+  const supabase = createClient(); // Create client instance
 
   // Fetch data from the database
   useEffect(() => {
@@ -201,11 +142,7 @@ export default function Education() {
             <p className="text-sm text-muted-foreground mt-1">{error}</p>
           </div>
         ) : (
-          <Tabs
-            defaultValue="interactive"
-            className="w-full"
-            onValueChange={(value) => setActiveTab(value)}
-          >
+          <Tabs defaultValue="interactive" className="w-full">
             <TabsList>
               <TabsTrigger value="interactive">
                 Interactive Learning
@@ -219,75 +156,45 @@ export default function Education() {
               <InteractiveEducation />
             </TabsContent>
 
-            <TabsContent value="basics" className="pt-4 relative">
-              <div
-                ref={basicsContentRef}
-                className="space-y-6 max-h-[600px] overflow-y-auto pr-2 scroll-smooth"
-              >
-                {filteredEducationContent.length > 0 ? (
-                  filteredEducationContent.map((item) => (
-                    <ProgressiveDisclosure
-                      key={item.id}
-                      term={item.title}
-                      basicDefinition={item.content}
-                      intermediateExplanation={item.intermediate_explanation}
-                      advancedDetails={item.advanced_details}
-                      examples={item.example ? [item.example] : []}
-                      relatedTerms={item.related_terms || []}
-                    />
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-6">
-                    No matching equity concepts found.
-                  </p>
-                )}
-              </div>
-              {showScrollButton && activeTab === "basics" && (
-                <Button
-                  onClick={scrollToTop}
-                  size="icon"
-                  variant="outline"
-                  className="fixed bottom-6 right-6 z-50 rounded-full shadow-md"
-                >
-                  <ChevronUp className="h-5 w-5" />
-                </Button>
+            <TabsContent value="basics" className="space-y-6 pt-4">
+              {filteredEducationContent.length > 0 ? (
+                filteredEducationContent.map((item) => (
+                  <ProgressiveDisclosure
+                    key={item.id}
+                    term={item.title}
+                    basicDefinition={item.content}
+                    intermediateExplanation={item.intermediate_explanation}
+                    advancedDetails={item.advanced_details}
+                    examples={item.example ? [item.example] : []}
+                    relatedTerms={item.related_terms || []}
+                  />
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-6">
+                  No matching equity concepts found.
+                </p>
               )}
             </TabsContent>
 
-            <TabsContent value="glossary" className="pt-4 relative">
-              <div
-                ref={glossaryContentRef}
-                className="max-h-[600px] overflow-y-auto pr-2 scroll-smooth"
-              >
-                <div className="grid gap-4 md:grid-cols-2">
-                  {filteredGlossaryTerms.length > 0 ? (
-                    filteredGlossaryTerms.map((item) => (
-                      <GlossaryItem
-                        key={item.id}
-                        term={item.term}
-                        definition={item.definition}
-                        examples={item.examples || []}
-                        relatedTerms={item.related_terms || []}
-                        technicalDetails={item.technical_details}
-                      />
-                    ))
-                  ) : (
-                    <p className="text-center text-muted-foreground py-6 col-span-2">
-                      No matching glossary terms found.
-                    </p>
-                  )}
-                </div>
+            <TabsContent value="glossary" className="pt-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                {filteredGlossaryTerms.length > 0 ? (
+                  filteredGlossaryTerms.map((item) => (
+                    <GlossaryItem
+                      key={item.id}
+                      term={item.term}
+                      definition={item.definition}
+                      examples={item.examples || []}
+                      relatedTerms={item.related_terms || []}
+                      technicalDetails={item.technical_details}
+                    />
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-6 col-span-2">
+                    No matching glossary terms found.
+                  </p>
+                )}
               </div>
-              {showScrollButton && activeTab === "glossary" && (
-                <Button
-                  onClick={scrollToTop}
-                  size="icon"
-                  variant="outline"
-                  className="fixed bottom-6 right-6 z-50 rounded-full shadow-md"
-                >
-                  <ChevronUp className="h-5 w-5" />
-                </Button>
-              )}
             </TabsContent>
 
             <TabsContent value="decisionGuides" className="space-y-6 pt-4">

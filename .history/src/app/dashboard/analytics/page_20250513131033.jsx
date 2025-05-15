@@ -1,6 +1,6 @@
-// src/app/dashboard/analytics/page.jsx
+// src/app/dashboard/analytics.jsx
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAnalyticsData } from "@/hooks/useAnalyticsData";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -34,87 +34,17 @@ import EmptyState from "@/components/analytics/EmptyState";
 export default function AnalyticsPage() {
   const [timeframe, setTimeframe] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
-  const [mounted, setMounted] = useState(false);
-
-  // Set mounted state to handle client-side only code
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Use custom hook for data fetching
   const {
     loading,
-    grants = [],
-    scenarios = [],
-    analytics = {
-      // Default values to prevent undefined errors
-      totalValue: 0,
-      currentValue: 0,
-      isoValue: 0,
-      rsuValue: 0,
-      isoPercentage: 0,
-      rsuPercentage: 0,
-      exerciseCost: 0,
-      potentialGain: 0,
-      totalShares: 0,
-      vestedShares: 0,
-      unvestedShares: 0,
-      companyValues: [],
-      portfolioTimeline: [], // This would be your timeline data
-      upcomingEvents: [],
-    },
+    grants,
+    scenarios,
+    analytics,
     error,
-    exportData = () => console.log("Export function not implemented"),
-    companyOptions = [{ value: "all", label: "All Companies" }],
+    exportData,
+    companyOptions,
   } = useAnalyticsData(timeframe, companyFilter);
-
-  // Ensure we have default timeline data even if analytics doesn't provide it
-  const portfolioTimelineData =
-    analytics?.portfolioTimeline?.length > 0
-      ? analytics.portfolioTimeline
-      : [
-          // Default sample data if none provided
-          {
-            date: "2021-01-01",
-            historicalValue: 0,
-            projectedValue: null,
-          },
-          {
-            date: "2022-01-01",
-            historicalValue: 25000,
-            projectedValue: null,
-          },
-          {
-            date: "2023-01-01",
-            historicalValue: 45000,
-            projectedValue: null,
-          },
-          {
-            date: "2024-01-01",
-            historicalValue: 64000,
-            projectedValue: null,
-          },
-          {
-            date: "2025-01-01",
-            historicalValue: 67000,
-            projectedValue: 67000,
-          },
-          {
-            date: "2026-01-01",
-            historicalValue: null,
-            projectedValue: 75000,
-          },
-        ];
-
-  // Add the timeline data to the analytics object
-  const enhancedAnalytics = {
-    ...analytics,
-    portfolioTimeline: portfolioTimelineData,
-  };
-
-  if (!mounted) {
-    return <AuthLoading />;
-  }
 
   if (loading) {
     return <AuthLoading />;
@@ -201,7 +131,7 @@ export default function AnalyticsPage() {
         </div>
       </DashboardHeader>
 
-      <OverviewMetrics analytics={enhancedAnalytics} grants={grants} />
+      <OverviewMetrics analytics={analytics} />
 
       <Tabs defaultValue="portfolio" className="mt-6 space-y-6">
         <TabsList>
@@ -211,15 +141,15 @@ export default function AnalyticsPage() {
         </TabsList>
 
         <TabsContent value="portfolio">
-          <PortfolioTab analytics={enhancedAnalytics} />
+          <PortfolioTab analytics={analytics} />
         </TabsContent>
 
         <TabsContent value="vesting">
-          <VestingTab analytics={enhancedAnalytics} grants={grants} />
+          <VestingTab analytics={analytics} grants={grants} />
         </TabsContent>
 
         <TabsContent value="scenarios">
-          <ScenariosTab analytics={enhancedAnalytics} scenarios={scenarios} />
+          <ScenariosTab analytics={analytics} />
         </TabsContent>
       </Tabs>
     </DashboardShell>

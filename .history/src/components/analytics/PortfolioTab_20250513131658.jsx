@@ -9,6 +9,65 @@ import PortfolioTimeline from "./PortfolioTimeline";
  * Displays portfolio analysis data including distribution and timeline charts
  */
 const PortfolioTab = ({ analytics = {} }) => {
+  // Sample data structure for the timeline (you'll need to replace with your actual data source)
+  const portfolioTimelineData = [
+    {
+      date: "2021-01-01",
+      historicalValue: 0,
+      projectedValue: null,
+    },
+    {
+      date: "2021-07-01",
+      historicalValue: 45000,
+      projectedValue: null,
+    },
+    {
+      date: "2022-01-01",
+      historicalValue: 52500,
+      projectedValue: null,
+    },
+    {
+      date: "2022-07-01",
+      historicalValue: 52500,
+      projectedValue: null,
+    },
+    {
+      date: "2023-01-01",
+      historicalValue: 64000,
+      projectedValue: null,
+    },
+    {
+      date: "2023-07-01",
+      historicalValue: 64000,
+      projectedValue: null,
+    },
+    {
+      date: "2024-01-01",
+      historicalValue: 64000,
+      projectedValue: null,
+    },
+    {
+      date: "2024-07-01",
+      historicalValue: 64000,
+      projectedValue: 64000,
+    },
+    {
+      date: "2025-01-01",
+      historicalValue: 67000,
+      projectedValue: 67000,
+    },
+    {
+      date: "2025-07-01",
+      historicalValue: null,
+      projectedValue: 70000,
+    },
+    {
+      date: "2026-01-01",
+      historicalValue: null,
+      projectedValue: 75000,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -82,7 +141,7 @@ const PortfolioTab = ({ analytics = {} }) => {
       </div>
 
       {/* Portfolio Timeline */}
-      <PortfolioTimeline portfolioData={analytics?.portfolioTimeline || []} />
+      <PortfolioTimeline portfolioData={portfolioTimelineData} />
 
       {/* Add any additional analysis components here */}
     </div>

@@ -38,6 +38,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 
@@ -92,9 +97,9 @@ export function ScenarioForm({
   // Update share price when price multiplier changes
   useEffect(() => {
     if (
-      selectedGrantData?.current_fmv &&
-      !formValuesChanged &&
-      selectedGrantData.current_fmv > 0
+      selectedGrantData &&
+      selectedGrantData.current_fmv &&
+      !formValuesChanged
     ) {
       const newPrice = selectedGrantData.current_fmv * priceMultiplier;
       form.setValue("share_price", parseFloat(newPrice.toFixed(2)));
@@ -109,19 +114,8 @@ export function ScenarioForm({
       if (!currentName || currentName.includes("Exit at $")) {
         form.setValue("name", suggestedName);
       }
-
-      // Notify parent component of changes
-      if (onFormChange) {
-        onFormChange(form.getValues());
-      }
     }
-  }, [
-    priceMultiplier,
-    selectedGrantData,
-    form,
-    formValuesChanged,
-    onFormChange,
-  ]);
+  }, [priceMultiplier, selectedGrantData, form, formValuesChanged]);
 
   // Send form values to parent when they change
   useEffect(() => {
@@ -132,13 +126,7 @@ export function ScenarioForm({
     ) {
       onFormChange(form.getValues());
     }
-  }, [
-    watchedValues.grant_id,
-    watchedValues.share_price,
-    watchedValues.shares_included,
-    onFormChange,
-    form,
-  ]);
+  }, [watchedValues, onFormChange, form]);
 
   // Handle form submission
   const handleSubmit = (values) => {
@@ -194,11 +182,6 @@ export function ScenarioForm({
   const handleSharePriceChange = (value) => {
     setFormValuesChanged(true);
     form.setValue("share_price", parseFloat(value) || 0);
-  };
-
-  // Fixed exit type selection handler
-  const handleExitTypeChange = (type) => {
-    form.setValue("exit_type", type);
   };
 
   return (
@@ -297,7 +280,7 @@ export function ScenarioForm({
                         ? "border-primary bg-primary/10"
                         : "border-input"
                     }`}
-                    onClick={() => handleExitTypeChange(type)}
+                    onClick={() => field.onChange(type)}
                   >
                     {getExitTypeIcon(type)}
                     <span className="mt-1 text-sm">{type}</span>
@@ -393,11 +376,11 @@ export function ScenarioForm({
                     />
                   </FormControl>
 
-                  {selectedGrantData && selectedGrantData.current_fmv > 0 && (
+                  {selectedGrantData && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>
-                          Current (${selectedGrantData.current_fmv?.toFixed(2)})
+                          Current ({selectedGrantData.current_fmv?.toFixed(2)})
                         </span>
                         <span>{priceMultiplier}x multiple</span>
                         <span>
@@ -492,14 +475,12 @@ export function ScenarioForm({
                     <div className="flex justify-between items-center mt-1">
                       <span>
                         {field.value} of{" "}
-                        {selectedGrantData.shares?.toLocaleString() || 0} total
-                        shares (
-                        {selectedGrantData.shares > 0
-                          ? (
-                              (field.value / selectedGrantData.shares) *
-                              100
-                            ).toFixed(1)
-                          : "0"}
+                        {selectedGrantData.shares.toLocaleString()} total shares
+                        (
+                        {(
+                          (field.value / selectedGrantData.shares) *
+                          100
+                        ).toFixed(1)}
                         %)
                       </span>
                       <Button
