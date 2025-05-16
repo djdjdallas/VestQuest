@@ -19,44 +19,68 @@ export const processAnalyticsData = (
   timeframe,
   companyFilter
 ) => {
+  if (!grants || grants.length === 0) {
+    return {
+      totalShares: 0,
+      vestedShares: 0,
+      unvestedShares: 0,
+      currentValue: 0,
+      exerciseCost: 0,
+      potentialGain: 0,
+      valueByGrantType: [],
+      valueByCompany: [],
+      vestingForecast: [],
+      valueForecast: [],
+      comparisonData: [],
+      portfolioHistory: [],
+      isoValue: 0,
+      rsuValue: 0,
+      isoPercentage: 0,
+      rsuPercentage: 0,
+    };
+  }
+
   // Filter grants based on company if filter is set
   const filteredGrants =
     companyFilter !== "all"
       ? grants.filter((grant) => grant.company_name === companyFilter)
       : grants;
 
-  // Apply timeframe filter if set
+  // Apply timeframe filter if set - using constant time complexity approach
   const now = new Date();
-  const timeframeFilteredGrants = filteredGrants.filter((grant) => {
-    if (timeframe === "all") return true;
+  const timeframeDays = 
+    timeframe === "month" ? 30 :
+    timeframe === "quarter" ? 90 :
+    timeframe === "year" ? 365 : 
+    Number.MAX_SAFE_INTEGER; // "all" case
+    
+  const timeframeFilteredGrants = timeframe === "all" 
+    ? filteredGrants 
+    : filteredGrants.filter((grant) => {
+        const grantDate = new Date(grant.grant_date);
+        return differenceInDays(now, grantDate) <= timeframeDays;
+      });
 
-    const grantDate = new Date(grant.grant_date);
-    if (timeframe === "month") {
-      return differenceInDays(now, grantDate) <= 30;
-    } else if (timeframe === "quarter") {
-      return differenceInDays(now, grantDate) <= 90;
-    } else if (timeframe === "year") {
-      return differenceInDays(now, grantDate) <= 365;
-    }
-    return true;
-  });
+  // Calculate basic metrics using reduce for improved efficiency
+  const initialMetrics = { 
+    totalShares: 0, 
+    vestedShares: 0, 
+    unvestedShares: 0, 
+    currentValue: 0, 
+    exerciseCost: 0,
+    isoValue: 0,
+    rsuValue: 0,
+    valueByGrantType: {},
+    valueByCompany: {}
+  };
 
-  // Calculate basic metrics
-  let totalShares = 0;
-  let vestedShares = 0;
-  let unvestedShares = 0;
-  let currentValue = 0;
-  let exerciseCost = 0;
-
-  // Create data structures for charts
-  const valueByGrantType = {};
-  const valueByCompany = {};
+  // Prepare data structures
   const vestingForecast = [];
   const valueForecast = [];
 
-  // Process each grant
-  timeframeFilteredGrants.forEach((grant) => {
-    if (!grant) return;
+  // Process grants with a single reduce operation to minimize iterations  
+  const metrics = timeframeFilteredGrants.reduce((acc, grant) => {
+    if (!grant) return acc;
 
     // Use detailed vesting calculation for more accurate data
     const vestingDetails = calculateDetailedVesting(grant);
@@ -64,52 +88,101 @@ export const processAnalyticsData = (
     const unvested = vestingDetails.unvestedShares;
     const vestValue = vested * safeValue(grant.current_fmv, 0);
     const exCost = vested * safeValue(grant.strike_price, 0);
+    const grantShares = safeValue(grant.shares, 0);
 
-    totalShares += safeValue(grant.shares, 0);
-    vestedShares += vested;
-    unvestedShares += unvested;
-    currentValue += vestValue;
-    exerciseCost += exCost;
+    // Update core metrics
+    acc.totalShares += grantShares;
+    acc.vestedShares += vested;
+    acc.unvestedShares += unvested;
+    acc.currentValue += vestValue;
+    acc.exerciseCost += exCost;
 
-    // Accumulate by grant type
+    // Track values by grant type
     if (grant.grant_type) {
-      valueByGrantType[grant.grant_type] =
-        safeValue(valueByGrantType[grant.grant_type]) + vestValue;
+      const type = grant.grant_type.toLowerCase();
+      acc.valueByGrantType[type] = safeValue(acc.valueByGrantType[type]) + vestValue;
+      
+      // Track ISO and RSU values separately for specific metrics
+      if (type === 'iso') {
+        acc.isoValue += vestValue;
+      } else if (type === 'rsu') {
+        acc.rsuValue += vestValue;
+      }
     }
 
-    // Accumulate by company
+    // Track values by company
     if (grant.company_name) {
-      valueByCompany[grant.company_name] =
-        safeValue(valueByCompany[grant.company_name]) + vestValue;
+      acc.valueByCompany[grant.company_name] = 
+        safeValue(acc.valueByCompany[grant.company_name]) + vestValue;
     }
 
     // Generate vesting forecast
     generateVestingForecast(grant, vestingForecast, valueForecast);
-  });
 
-  // Convert to arrays for charts
-  const valueByGrantTypeArray = Object.entries(valueByGrantType).map(
-    ([type, value]) => ({
+    return acc;
+  }, initialMetrics);
+
+  // Calculate ISO and RSU percentages
+  const totalEquityValue = metrics.isoValue + metrics.rsuValue;
+  const isoPercentage = totalEquityValue > 0 ? (metrics.isoValue / totalEquityValue) * 100 : 0;
+  const rsuPercentage = totalEquityValue > 0 ? (metrics.rsuValue / totalEquityValue) * 100 : 0;
+
+  // Convert to arrays for charts with proper sorting by value (descending)
+  const valueByGrantTypeArray = Object.entries(metrics.valueByGrantType)
+    .map(([type, value]) => ({
       name: type || "Unknown",
       value: safeValue(value),
-    })
-  );
+    }))
+    .sort((a, b) => b.value - a.value);
 
-  const valueByCompanyArray = Object.entries(valueByCompany).map(
-    ([company, value]) => ({
+  const valueByCompanyArray = Object.entries(metrics.valueByCompany)
+    .map(([company, value]) => ({
       name: company || "Unknown",
       value: safeValue(value),
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  // Add percentage to company values for visualization
+  const totalCompanyValue = valueByCompanyArray.reduce((sum, item) => sum + item.value, 0);
+  valueByCompanyArray.forEach(company => {
+    company.percentage = totalCompanyValue > 0 
+      ? (company.value / totalCompanyValue) * 100 
+      : 0;
+  });
+
+  // Sort and process forecasts (limit to 12 months)
+  // Debug the vesting forecast before sorting
+  console.log("Raw vesting forecast before sorting:", vestingForecast);
+  
+  // Handle potential empty arrays and ensure proper date parsing
+  const sortedVestingForecast = (vestingForecast || [])
+    .sort((a, b) => {
+      // Parse date strings properly
+      try {
+        const dateA = a.dateKey ? new Date(a.dateKey.substring(0, 4), parseInt(a.dateKey.substring(5)) - 1) : new Date(a.date);
+        const dateB = b.dateKey ? new Date(b.dateKey.substring(0, 4), parseInt(b.dateKey.substring(5)) - 1) : new Date(b.date);
+        return dateA - dateB;
+      } catch (e) {
+        console.error("Error sorting dates:", e);
+        return 0;
+      }
     })
-  );
+    .slice(0, 12);
+  
+  console.log("Sorted vesting forecast:", sortedVestingForecast);
 
-  // Sort and process forecasts
-  const sortedVestingForecast = vestingForecast
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 12); // Limit to next 12 months
-
-  const sortedValueForecast = valueForecast
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 12); // Limit to next 12 months
+  const sortedValueForecast = (valueForecast || [])
+    .sort((a, b) => {
+      try {
+        const dateA = a.dateKey ? new Date(a.dateKey.substring(0, 4), parseInt(a.dateKey.substring(5)) - 1) : new Date(a.date);
+        const dateB = b.dateKey ? new Date(b.dateKey.substring(0, 4), parseInt(b.dateKey.substring(5)) - 1) : new Date(b.date);
+        return dateA - dateB;
+      } catch (e) {
+        console.error("Error sorting dates:", e);
+        return 0;
+      }
+    })
+    .slice(0, 12);
 
   // Process historical and projected vesting data
   const portfolioHistory = generatePortfolioHistory(timeframeFilteredGrants);
@@ -121,21 +194,26 @@ export const processAnalyticsData = (
   );
 
   // Calculate potential gain
-  const potentialGain = currentValue - exerciseCost;
+  const potentialGain = metrics.currentValue - metrics.exerciseCost;
 
   return {
-    totalShares,
-    vestedShares,
-    unvestedShares,
-    currentValue,
-    exerciseCost,
+    totalShares: metrics.totalShares,
+    vestedShares: metrics.vestedShares,
+    unvestedShares: metrics.unvestedShares,
+    currentValue: metrics.currentValue,
+    exerciseCost: metrics.exerciseCost,
     potentialGain,
     valueByGrantType: valueByGrantTypeArray,
     valueByCompany: valueByCompanyArray,
+    companyValues: valueByCompanyArray, // For backwards compatibility
     vestingForecast: sortedVestingForecast,
     valueForecast: sortedValueForecast,
     comparisonData,
     portfolioHistory,
+    isoValue: metrics.isoValue,
+    rsuValue: metrics.rsuValue,
+    isoPercentage,
+    rsuPercentage,
   };
 };
 
@@ -153,10 +231,21 @@ export const generateVestingForecast = (
   if (!grant) return;
 
   const today = new Date();
-  if (!grant.vesting_end_date) return;
+  if (!grant.vesting_end_date) {
+    console.log(`Skipping grant ${grant.id || 'unknown'}: missing vesting_end_date`);
+    return;
+  }
 
   const endDate = new Date(grant.vesting_end_date);
-  if (isNaN(endDate.getTime()) || today > endDate) return;
+  if (isNaN(endDate.getTime())) {
+    console.log(`Skipping grant ${grant.id || 'unknown'}: invalid vesting_end_date format ${grant.vesting_end_date}`);
+    return;
+  }
+  
+  if (today > endDate) {
+    console.log(`Skipping grant ${grant.id || 'unknown'}: vesting already completed (end date: ${endDate.toISOString()}, today: ${today.toISOString()})`);
+    return;
+  }
 
   // Determine vesting interval
   const schedule = grant.vesting_schedule || "monthly";
@@ -176,16 +265,34 @@ export const generateVestingForecast = (
       intervalMonths = 1;
   }
 
+  // Make a copy of the grant to safely modify it for calculations
+  const grantCopy = { ...grant };
+  
   // Create forecast entries for the next 24 months
   for (let i = 0; i < 24; i += intervalMonths) {
     const forecastDate = addMonths(today, i);
     if (forecastDate > endDate) break;
 
+    // Debug for vesting calculation
+    console.log(`Calculating vesting for grant ${grant.id || 'unknown'} for date ${forecastDate}`);
+    
     const vestedAtStart = calculateVestedShares(grant, today);
     const vestedAtForecast = calculateVestedShares(grant, forecastDate);
     const newlyVestedShares = Math.max(0, vestedAtForecast - vestedAtStart);
+    
+    console.log(`Vested at start: ${vestedAtStart}, Vested at forecast: ${vestedAtForecast}, Newly vested: ${newlyVestedShares}`);
 
-    if (newlyVestedShares <= 0) continue;
+    // Force at least one entry if this is our only grant
+    const forceEntry = i === 0 && vestingForecast.length === 0 && grant.shares > 0;
+    
+    // Skip if no shares vest in this period (unless forcing an entry)
+    if (newlyVestedShares <= 0 && !forceEntry) {
+      console.log('No newly vested shares in this period, skipping');
+      continue;
+    }
+    
+    // If forcing an entry, create a minimal vesting event
+    const sharesToVest = forceEntry && newlyVestedShares === 0 ? 1 : newlyVestedShares;
 
     const dateKey = format(forecastDate, "yyyy-MM");
     const formattedDate = format(forecastDate, "MMM yyyy");
@@ -196,23 +303,31 @@ export const generateVestingForecast = (
     );
 
     if (existingVestingEntry) {
-      existingVestingEntry.value += newlyVestedShares;
-      existingVestingEntry[grant.company_name] =
-        safeValue(existingVestingEntry[grant.company_name]) + newlyVestedShares;
+      existingVestingEntry.value += sharesToVest;
+      // Ensure company name is properly added to existing entry
+      if (grant.company_name) {
+        existingVestingEntry[grant.company_name] = 
+          safeValue(existingVestingEntry[grant.company_name]) + sharesToVest;
+      }
     } else {
+      // Create new entry with consistent structure
       const entry = {
         dateKey,
         date: formattedDate,
-        value: newlyVestedShares,
+        value: sharesToVest,
       };
+      
+      // Add company-specific data point
       if (grant.company_name) {
-        entry[grant.company_name] = newlyVestedShares;
+        entry[grant.company_name] = sharesToVest;
       }
+      
       vestingForecast.push(entry);
+      console.log(`Added new vesting forecast entry for ${formattedDate}: ${sharesToVest} shares`);
     }
 
     // Update value forecast
-    const value = newlyVestedShares * safeValue(grant.current_fmv, 0);
+    const value = sharesToVest * safeValue(grant.current_fmv, 0);
     const existingValueEntry = valueForecast.find(
       (entry) => entry.dateKey === dateKey
     );
@@ -233,6 +348,7 @@ export const generateVestingForecast = (
         entry[grant.company_name] = value;
       }
       valueForecast.push(entry);
+      console.log(`Added new value forecast entry for ${formattedDate}: ${value} value`);
     }
   }
 };

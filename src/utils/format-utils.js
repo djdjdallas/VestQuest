@@ -26,6 +26,16 @@ export const formatPercentage = (value) => {
 };
 
 /**
+ * Formats a number with thousands separators
+ * @param {number} value - The value to format
+ * @returns {string} Formatted number string
+ */
+export const formatNumber = (value) => {
+  if (typeof value !== "number" || isNaN(value)) return "0";
+  return new Intl.NumberFormat("en-US").format(value);
+};
+
+/**
  * Returns the value if it's a valid number, otherwise returns a default value
  * @param {any} value - The value to check
  * @param {number} defaultValue - The default value to return if value is invalid

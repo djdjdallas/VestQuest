@@ -22,7 +22,8 @@ import {
   Legend,
 } from "recharts";
 import { format } from "date-fns";
-import { Info } from "lucide-react";
+import { Info, ChevronRight, AlertTriangle, TrendingUp, Activity } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export function VestingSimulationModal({
   isOpen,
@@ -46,8 +47,17 @@ export function VestingSimulationModal({
   const formatNumber = (value) => {
     return new Intl.NumberFormat("en-US").format(value);
   };
+  
+  const formatPercentage = (value) => {
+    return `${Number(value).toFixed(1)}%`;
+  };
 
   if (!simulationData) return null;
+  
+  // Determine if this is an acceleration simulation
+  const isAccelerationSimulation = 
+    simulationType === "schedule" && simulationData.title?.includes("Accelerated") ||
+    simulationType === "scenario" && simulationData.title?.includes("M&A");
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -95,7 +105,15 @@ export function VestingSimulationModal({
 
             {/* Chart */}
             <div className="rounded-lg border p-4">
-              <h3 className="mb-4 font-medium">Vesting Visualization</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-medium">Vesting Visualization</h3>
+                {isAccelerationSimulation && (
+                  <div className="flex items-center gap-2 text-sm bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                    <Activity size={16} />
+                    <span>Acceleration Enabled</span>
+                  </div>
+                )}
+              </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
@@ -157,11 +175,104 @@ export function VestingSimulationModal({
                         yAxisId="right"
                       />
                     )}
+                    
+                    {/* Add dotted reference line for original schedule in acceleration scenarios */}
+                    {isAccelerationSimulation && simulationData.chartConfig?.showReference && (
+                      <Line
+                        type="monotone"
+                        dataKey="referenceVesting"
+                        name="Standard Schedule"
+                        stroke="#9ca3af"
+                        strokeDasharray="5 5"
+                        strokeWidth={2}
+                        yAxisId="left"
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
+            {/* Acceleration Summary - Only shown for acceleration scenarios */}
+            {isAccelerationSimulation && (
+              <div className="rounded-lg border p-4 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <h3 className="mb-3 font-medium flex items-center gap-2">
+                  <TrendingUp size={18} className="text-blue-600" />
+                  Acceleration Overview
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Vesting Progress</p>
+                    <div className="flex flex-col gap-1">
+                      {simulationData.metrics.find(m => m.label === "Acceleration Factor") && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Acceleration Factor:</span>
+                          <span className="font-medium">
+                            {simulationData.metrics.find(m => m.label === "Acceleration Factor").value}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {simulationData.metrics.find(m => m.label === "Months Saved") && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Months Saved:</span>
+                          <span className="font-medium text-green-600">
+                            {simulationData.metrics.find(m => m.label === "Months Saved").value} months
+                          </span>
+                        </div>
+                      )}
+                      
+                      {simulationData.metrics.find(m => m.label === "Accelerated Shares") && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Accelerated Shares:</span>
+                          <span className="font-medium text-green-600">
+                            {formatNumber(simulationData.metrics.find(m => m.label === "Accelerated Shares").value)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    {/* If M&A event, show details */}
+                    {simulationData.title?.includes("M&A") && (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm text-muted-foreground mb-1">M&A Impact</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Stock Price Multiplier:</span>
+                          <span className="font-medium">1.5x</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Acceleration Type:</span>
+                          <span className="font-medium">Single-Trigger</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* For accelerated schedule, show date comparison */}
+                    {simulationData.metrics.find(m => m.label === "Standard End Date") && (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm text-muted-foreground mb-1">Timeline Comparison</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Standard End:</span>
+                          <span className="font-medium">
+                            {simulationData.metrics.find(m => m.label === "Standard End Date").value}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Accelerated End:</span>
+                          <span className="font-medium text-green-600">
+                            {simulationData.metrics.find(m => m.label === "Accelerated End Date").value}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Timeline Events */}
             {simulationData.events && simulationData.events.length > 0 && (
               <div className="rounded-lg border p-4">
@@ -179,10 +290,20 @@ export function VestingSimulationModal({
                               ? "bg-green-100 text-green-600"
                               : event.type === "negative"
                               ? "bg-red-100 text-red-600"
+                              : event.type === "acceleration"
+                              ? "bg-amber-100 text-amber-800"
                               : "bg-blue-100 text-blue-600"
                           }`}
                         >
-                          <Info className="h-3 w-3" />
+                          {event.type === "positive" ? (
+                            <ChevronRight className="h-3 w-3" />
+                          ) : event.type === "negative" ? (
+                            <AlertTriangle className="h-3 w-3" />
+                          ) : event.type === "acceleration" ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <Info className="h-3 w-3" />
+                          )}
                         </div>
                         <div>
                           <p className="font-medium">{event.title}</p>
@@ -203,7 +324,10 @@ export function VestingSimulationModal({
             {/* Explanatory Notes */}
             {simulationData.notes && (
               <div className="rounded-lg bg-muted/50 p-4 text-sm mb-4">
-                <h3 className="mb-2 font-medium">Important Notes</h3>
+                <h3 className="mb-2 font-medium flex items-center gap-2">
+                  <Info size={16} />
+                  Important Notes
+                </h3>
                 <div className="space-y-2">
                   {simulationData.notes.map((note, index) => (
                     <p key={index} className="text-muted-foreground">
@@ -220,6 +344,15 @@ export function VestingSimulationModal({
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
+          {simulationType === "schedule" && (
+            <Button 
+              variant="secondary"
+              onClick={() => window.print()}
+              className="hidden md:flex"
+            >
+              Print / Save as PDF
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,6 @@
 // src/components/analytics/VestingForecastChart.jsx
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -26,6 +26,12 @@ import { COLORS, customTooltipFormatter } from "@/utils/format-utils";
  * @param {Array} grants - All equity grants to derive companies
  */
 export const VestingForecastChart = ({ data, grants }) => {
+  // Add debug logging
+  useEffect(() => {
+    console.log("VestingForecastChart data:", data);
+    console.log("VestingForecastChart grants:", grants);
+  }, [data, grants]);
+  
   // Get unique company names from grants
   const uniqueCompanies = grants
     .filter((g) => g && g.company_name)
@@ -43,7 +49,7 @@ export const VestingForecastChart = ({ data, grants }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {data.length > 0 ? (
+        {data && data.length > 0 ? (
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -69,7 +75,7 @@ export const VestingForecastChart = ({ data, grants }) => {
           </div>
         ) : (
           <div className="flex items-center justify-center h-80 text-muted-foreground">
-            No upcoming vesting events found
+            No upcoming vesting events found (Data: {JSON.stringify(data)})
           </div>
         )}
       </CardContent>

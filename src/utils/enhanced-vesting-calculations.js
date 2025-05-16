@@ -3,6 +3,9 @@
  * Handles complex vesting schedules, edge cases, and provides more detailed outputs
  */
 
+import { formatCurrency, formatNumber } from "@/utils/format-utils";
+import { addMonths, addDays, differenceInMonths, differenceInDays, parseISO, format } from "date-fns";
+
 /**
  * Calculate vested shares with support for complex vesting schedules
  * @param {Object} grant - The equity grant
@@ -46,11 +49,17 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
     nextVestingShares: 0,
     vestingSchedule: [], // Initialize with empty array
     timeUntilNextVesting: null,
+    milestones: [], // Track key vesting milestones
   };
 
   // If invalid dates or no shares, return default result
   if (!vestingStart || !vestingEnd || totalShares <= 0) {
     return result;
+  }
+
+  // Handle accelerated vesting if flag is set
+  if (grant.accelerated_vesting) {
+    return calculateAcceleratedVesting(grant, now, result);
   }
 
   // Determine vesting schedule type and calculate accordingly
@@ -80,6 +89,9 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
     intervalDays
   );
 
+  // Generate milestone events (25%, 50%, 75%, 100%)
+  result.milestones = generateMilestones(grant, result.vestingSchedule);
+
   // If fully vested
   if (now >= vestingEnd) {
     result.vestedShares = totalShares;
@@ -104,7 +116,7 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
   if (cliffDate && now < cliffDate) {
     result.nextVestingDate = cliffDate;
     // Typical cliff vesting amount (can be customized based on grant details)
-    result.nextVestingShares = Math.floor(totalShares * 0.25);
+    result.nextVestingShares = Math.floor(totalShares * (grant.cliff_percentage || 0.25));
     result.timeUntilNextVesting = Math.ceil(
       (cliffDate - now) / (1000 * 60 * 60 * 24)
     );
@@ -123,7 +135,7 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
   // Standard vesting with cliff
   if (cliffDate && now >= cliffDate) {
     // Calculate cliff amount (typically 25% for 1-year cliff)
-    const cliffPercentage = 0.25;
+    const cliffPercentage = grant.cliff_percentage || 0.25;
     const cliffShares = Math.floor(totalShares * cliffPercentage);
 
     // Calculate additional vesting after cliff
@@ -136,86 +148,288 @@ export function calculateDetailedVesting(grant, asOfDate = new Date()) {
     );
     vestedShares = Math.min(cliffShares + additionalVested, totalShares);
   } else {
-    // Simple linear vesting
+    // Simple linear vesting (no cliff or cliff has passed)
     vestedShares = Math.floor((elapsedDays / totalVestingDays) * totalShares);
   }
 
-  // RSUs that require liquidity event
-  if (grant.grant_type === "RSU" && grant.liquidity_event_only) {
+  // Handle double-trigger RSUs that require liquidity event
+  if (grant.grant_type === "RSU" && grant.liquidity_event_only && !grant.liquidity_event_date) {
     vestedShares = 0;
+  } else if (grant.grant_type === "RSU" && grant.liquidity_event_only && grant.liquidity_event_date) {
+    // Handle the case where the liquidity event has occurred
+    const liquidityDate = new Date(grant.liquidity_event_date);
+    if (now >= liquidityDate) {
+      // Only time-vested shares (as of liquidityDate) actually vest when the liquidity event happens
+      const timeVestedAtLiquidity = calculateVestedSharesAtDate(grant, liquidityDate);
+      vestedShares = Math.min(timeVestedAtLiquidity, vestedShares);
+    } else {
+      // Liquidity event is in the future
+      vestedShares = 0;
+    }
   }
 
   // Calculate next vesting date and amount
-  let nextDate = null;
-  let nextShares = 0;
-
-  if (vestedShares < totalShares) {
-    if (vestingSchedule === "monthly") {
-      nextDate = new Date(now);
-      nextDate.setMonth(nextDate.getMonth() + 1);
-      // Adjust day to match original grant's day if possible
-      const originalDay = vestingStart.getDate();
-      const maxDaysInMonth = new Date(
-        nextDate.getFullYear(),
-        nextDate.getMonth() + 1,
-        0
-      ).getDate();
-      nextDate.setDate(Math.min(originalDay, maxDaysInMonth));
-
-      const monthlyAmount = totalShares / 48; // Typical 48-month vesting
-      nextShares = Math.min(
-        Math.floor(monthlyAmount),
-        totalShares - vestedShares
-      );
-    } else if (vestingSchedule === "quarterly") {
-      nextDate = new Date(now);
-      nextDate.setMonth(nextDate.getMonth() + 3);
-      // Adjust day to match original grant's day if possible
-      const originalDay = vestingStart.getDate();
-      const maxDaysInMonth = new Date(
-        nextDate.getFullYear(),
-        nextDate.getMonth() + 1,
-        0
-      ).getDate();
-      nextDate.setDate(Math.min(originalDay, maxDaysInMonth));
-
-      const quarterlyAmount = totalShares / 16; // Typical 16-quarter vesting
-      nextShares = Math.min(
-        Math.floor(quarterlyAmount),
-        totalShares - vestedShares
-      );
-    } else {
-      nextDate = new Date(now);
-      nextDate.setFullYear(nextDate.getFullYear() + 1);
-      // Keep exact date for yearly vesting
-      nextDate.setMonth(vestingStart.getMonth());
-      nextDate.setDate(vestingStart.getDate());
-
-      const yearlyAmount = totalShares / 4; // Typical 4-year vesting
-      nextShares = Math.min(
-        Math.floor(yearlyAmount),
-        totalShares - vestedShares
-      );
-    }
-
-    // If next date is beyond vesting end, use vesting end
-    if (nextDate > vestingEnd) {
-      nextDate = new Date(vestingEnd);
-      nextShares = totalShares - vestedShares;
-    }
-  }
+  const nextVestingEvent = calculateNextVestingEvent(
+    grant,
+    vestingSchedule,
+    now,
+    intervalDays,
+    vestedShares,
+    cliffDate
+  );
 
   // Update result
   result.vestedShares = vestedShares;
   result.unvestedShares = totalShares - vestedShares;
   result.vestedPercentage = (vestedShares / totalShares) * 100;
-  result.nextVestingDate = nextDate;
-  result.nextVestingShares = nextShares;
-  result.timeUntilNextVesting = nextDate
-    ? Math.ceil((nextDate - now) / (1000 * 60 * 60 * 24))
+  result.nextVestingDate = nextVestingEvent.nextDate;
+  result.nextVestingShares = nextVestingEvent.nextShares;
+  result.timeUntilNextVesting = nextVestingEvent.nextDate
+    ? Math.ceil((nextVestingEvent.nextDate - now) / (1000 * 60 * 60 * 24))
     : null;
 
   return result;
+}
+
+/**
+ * Calculate the vesting for grants with accelerated vesting
+ * @param {Object} grant - The equity grant
+ * @param {Date} now - Current reference date
+ * @param {Object} baseResult - Base result object to extend
+ * @returns {Object} Result with accelerated vesting calculated
+ */
+function calculateAcceleratedVesting(grant, now, baseResult) {
+  // Start with regular vesting calculation
+  const regularVesting = { ...baseResult };
+  const vestingStart = new Date(grant.vesting_start_date);
+  const vestingEnd = new Date(grant.vesting_end_date);
+  const cliffDate = grant.vesting_cliff_date ? new Date(grant.vesting_cliff_date) : null;
+  const totalShares = grant.shares || 0;
+  
+  // Calculate the elapsed time as a percentage of total vesting period
+  const totalVestingDays = (vestingEnd - vestingStart) / (1000 * 60 * 60 * 24);
+  const elapsedDays = Math.min(
+    totalVestingDays,
+    (now - vestingStart) / (1000 * 60 * 60 * 24)
+  );
+  const elapsedPercentage = elapsedDays / totalVestingDays;
+  
+  // Calculate the accelerated percentage (typically 1.25-1.5 times the normal rate)
+  const accelerationFactor = grant.acceleration_factor || 1.25;
+  let acceleratedPercentage = elapsedPercentage * accelerationFactor;
+  
+  // Handle cliff for accelerated vesting
+  if (cliffDate && now < cliffDate) {
+    // Before cliff, no acceleration
+    return regularVesting;
+  } else if (cliffDate && now >= cliffDate) {
+    // After cliff, apply acceleration to post-cliff vesting
+    const cliffPercentage = grant.cliff_percentage || 0.25;
+    const postCliffElapsed = Math.min(totalVestingDays, (now - cliffDate) / (1000 * 60 * 60 * 24));
+    const postCliffTotal = totalVestingDays - (cliffDate - vestingStart) / (1000 * 60 * 60 * 24);
+    const postCliffPercentage = postCliffElapsed / postCliffTotal;
+    const acceleratedPostCliff = postCliffPercentage * accelerationFactor;
+    
+    // Combine cliff and accelerated post-cliff vesting
+    acceleratedPercentage = cliffPercentage + (1 - cliffPercentage) * acceleratedPostCliff;
+  }
+  
+  // Cap at 100%
+  acceleratedPercentage = Math.min(acceleratedPercentage, 1);
+  
+  // Calculate vested shares
+  const vestedShares = Math.floor(totalShares * acceleratedPercentage);
+  
+  // Generate accelerated schedule
+  const vestingSchedule = generateAcceleratedSchedule(
+    grant,
+    cliffDate,
+    vestingStart,
+    vestingEnd,
+    accelerationFactor
+  );
+  
+  // Return the result with accelerated vesting
+  return {
+    ...regularVesting,
+    vestedShares,
+    unvestedShares: totalShares - vestedShares,
+    vestedPercentage: acceleratedPercentage * 100,
+    vestingSchedule,
+    milestones: generateMilestones(grant, vestingSchedule),
+    accelerated: true,
+    accelerationFactor
+  };
+}
+
+/**
+ * Generate vesting schedule for accelerated vesting
+ * @param {Object} grant - The equity grant
+ * @param {Date} cliffDate - Cliff date (if applicable)
+ * @param {Date} vestingStart - Vesting start date
+ * @param {Date} vestingEnd - Vesting end date
+ * @param {number} accelerationFactor - The acceleration factor (e.g. 1.25)
+ * @returns {Array} Array of vesting events with dates and amounts
+ */
+function generateAcceleratedSchedule(
+  grant,
+  cliffDate,
+  vestingStart,
+  vestingEnd,
+  accelerationFactor
+) {
+  const schedule = [];
+  const totalShares = grant.shares || 0;
+  
+  // Add initial grant date with 0 vested
+  schedule.push({
+    date: new Date(vestingStart),
+    shares: 0,
+    event: "Grant Date",
+  });
+  
+  // Handle cliff vesting
+  if (cliffDate) {
+    const cliffPercentage = grant.cliff_percentage || 0.25;
+    schedule.push({
+      date: new Date(cliffDate),
+      shares: Math.floor(totalShares * cliffPercentage),
+      event: "Cliff Vesting",
+    });
+    
+    // Calculate accelerated post-cliff vesting
+    const postCliffPeriod = (vestingEnd - cliffDate) / (1000 * 60 * 60 * 24);
+    const acceleratedEnd = new Date(cliffDate.getTime() + postCliffPeriod * 1000 * 60 * 60 * 24 / accelerationFactor);
+    
+    // Add monthly points between cliff and accelerated end
+    let currentDate = new Date(cliffDate);
+    const monthlyInterval = 30; // days
+    const cliffShares = Math.floor(totalShares * cliffPercentage);
+    const remainingShares = totalShares - cliffShares;
+    
+    while (currentDate < acceleratedEnd && currentDate < vestingEnd) {
+      // Move to next month
+      currentDate = addDays(currentDate, monthlyInterval);
+      
+      // Calculate percentage of post-cliff period complete
+      const daysAfterCliff = (currentDate - cliffDate) / (1000 * 60 * 60 * 24);
+      const acceleratedPercentage = Math.min(daysAfterCliff / (postCliffPeriod / accelerationFactor), 1);
+      
+      // Calculate shares vested
+      const postCliffShares = Math.floor(remainingShares * acceleratedPercentage);
+      const totalVested = Math.min(cliffShares + postCliffShares, totalShares);
+      
+      schedule.push({
+        date: new Date(currentDate),
+        shares: totalVested,
+        event: currentDate >= vestingEnd ? "Final Vesting" : "Accelerated Vesting",
+      });
+      
+      // Break if we've reached full vesting
+      if (totalVested >= totalShares || currentDate >= vestingEnd) {
+        break;
+      }
+    }
+    
+    // Ensure final vesting point
+    if (schedule[schedule.length - 1].shares < totalShares) {
+      schedule.push({
+        date: new Date(Math.min(acceleratedEnd, vestingEnd)),
+        shares: totalShares,
+        event: "Final Vesting",
+      });
+    }
+  } else {
+    // No cliff, just accelerated linear vesting
+    const acceleratedEnd = new Date(vestingStart.getTime() + 
+      (vestingEnd - vestingStart) / accelerationFactor);
+    
+    // Add monthly points between start and accelerated end
+    let currentDate = new Date(vestingStart);
+    const monthlyInterval = 30; // days
+    
+    while (currentDate < acceleratedEnd && currentDate < vestingEnd) {
+      // Move to next month
+      currentDate = addDays(currentDate, monthlyInterval);
+      
+      // Calculate percentage complete
+      const daysSinceStart = (currentDate - vestingStart) / (1000 * 60 * 60 * 24);
+      const totalDays = (vestingEnd - vestingStart) / (1000 * 60 * 60 * 24);
+      const acceleratedPercentage = Math.min(daysSinceStart / (totalDays / accelerationFactor), 1);
+      
+      // Calculate shares vested
+      const vestedShares = Math.floor(totalShares * acceleratedPercentage);
+      
+      schedule.push({
+        date: new Date(currentDate),
+        shares: vestedShares,
+        event: currentDate >= vestingEnd ? "Final Vesting" : "Accelerated Vesting",
+      });
+      
+      // Break if we've reached full vesting
+      if (vestedShares >= totalShares || currentDate >= vestingEnd) {
+        break;
+      }
+    }
+    
+    // Ensure final vesting point
+    if (schedule[schedule.length - 1].shares < totalShares) {
+      schedule.push({
+        date: new Date(Math.min(acceleratedEnd, vestingEnd)),
+        shares: totalShares,
+        event: "Final Vesting",
+      });
+    }
+  }
+  
+  return schedule;
+}
+
+/**
+ * Calculate vested shares at a specific date
+ * @param {Object} grant - The equity grant
+ * @param {Date} asOfDate - The date to calculate vesting as of
+ * @returns {number} Number of vested shares
+ */
+function calculateVestedSharesAtDate(grant, asOfDate) {
+  const vestingStart = new Date(grant.vesting_start_date);
+  const vestingEnd = new Date(grant.vesting_end_date);
+  const cliffDate = grant.vesting_cliff_date ? new Date(grant.vesting_cliff_date) : null;
+  const totalShares = grant.shares || 0;
+  
+  // If date is before vesting start or no shares, return 0
+  if (asOfDate < vestingStart || totalShares <= 0) {
+    return 0;
+  }
+  
+  // If date is after vesting end, return all shares
+  if (asOfDate >= vestingEnd) {
+    return totalShares;
+  }
+  
+  // If cliff exists and date is before cliff, return 0
+  if (cliffDate && asOfDate < cliffDate) {
+    return 0;
+  }
+  
+  // Calculate based on elapsed time
+  const totalVestingDays = (vestingEnd - vestingStart) / (1000 * 60 * 60 * 24);
+  const elapsedDays = (asOfDate - vestingStart) / (1000 * 60 * 60 * 24);
+  
+  // Handle cliff
+  if (cliffDate && asOfDate >= cliffDate) {
+    const cliffPercentage = grant.cliff_percentage || 0.25;
+    const cliffShares = Math.floor(totalShares * cliffPercentage);
+    const daysAfterCliff = (asOfDate - cliffDate) / (1000 * 60 * 60 * 24);
+    const remainingShares = totalShares - cliffShares;
+    const remainingDays = (vestingEnd - cliffDate) / (1000 * 60 * 60 * 24);
+    
+    const additionalVested = Math.floor((daysAfterCliff / remainingDays) * remainingShares);
+    return Math.min(cliffShares + additionalVested, totalShares);
+  } else {
+    // Simple linear vesting
+    return Math.floor((elapsedDays / totalVestingDays) * totalShares);
+  }
 }
 
 /**
@@ -242,7 +456,7 @@ function calculateNextVestingEvent(
   if (cliffDate && asOfDate < cliffDate) {
     return {
       nextDate: cliffDate,
-      nextShares: Math.floor(grant.shares * 0.25), // Typical cliff vesting
+      nextShares: Math.floor(grant.shares * (grant.cliff_percentage || 0.25)),
     };
   }
 
@@ -263,7 +477,7 @@ function calculateNextVestingEvent(
   }
 
   // Calculate next periodic vesting date
-  let nextDate = new Date(asOfDate);
+  let nextDate;
   let foundNextDate = false;
 
   // Start from last vesting date before current date
@@ -296,7 +510,7 @@ function calculateNextVestingEvent(
 
     // For cliff vesting followed by periodic
     if (cliffDate) {
-      const cliffShares = Math.floor(grant.shares * 0.25);
+      const cliffShares = Math.floor(grant.shares * (grant.cliff_percentage || 0.25));
       const sharesPerPeriod = Math.floor(
         (grant.shares - cliffShares) / (totalPeriods - 1)
       );
@@ -352,7 +566,7 @@ function generateVestingSchedule(
 
   // Handle cliff vesting
   if (cliffDate) {
-    const cliffPercentage = 0.25; // Typical 1-year cliff for 4-year vest
+    const cliffPercentage = grant.cliff_percentage || 0.25; // Allow custom cliff %
     schedule.push({
       date: new Date(cliffDate),
       shares: Math.floor(grant.shares * cliffPercentage),
@@ -434,11 +648,43 @@ function generateVestingSchedule(
 }
 
 /**
- * Calculate upcoming vesting events
+ * Generate key vesting milestones (25%, 50%, 75%, 100%)
  * @param {Object} grant - The equity grant
- * @param {number} [monthsAhead=6] - Number of months to look ahead
- * @returns {Array} Upcoming vesting events
+ * @param {Array} vestingSchedule - The detailed vesting schedule
+ * @returns {Array} Key vesting milestone events
  */
+function generateMilestones(grant, vestingSchedule) {
+  if (!vestingSchedule || vestingSchedule.length === 0) return [];
+  
+  const totalShares = grant.shares || 0;
+  if (totalShares <= 0) return [];
+  
+  const milestones = [];
+  const milestonePercentages = [25, 50, 75, 100];
+  
+  // Find the date when each milestone percentage is reached
+  milestonePercentages.forEach(percentage => {
+    const targetShares = Math.floor(totalShares * (percentage / 100));
+    
+    // Find the first schedule entry that reaches this milestone
+    for (let i = 0; i < vestingSchedule.length; i++) {
+      if (vestingSchedule[i].shares >= targetShares) {
+        // We found the entry that reaches/exceeds this milestone
+        milestones.push({
+          date: vestingSchedule[i].date,
+          percentage,
+          shares: targetShares,
+          event: percentage === 100 ? "Final Vesting" : `${percentage}% Milestone`,
+          value: targetShares * (grant.current_fmv || 0),
+        });
+        break;
+      }
+    }
+  });
+  
+  return milestones;
+}
+
 /**
  * Calculate upcoming vesting events
  * @param {Object} grant - The equity grant
@@ -477,6 +723,25 @@ export function getUpcomingVestingEvents(grant, monthsAhead = 6) {
             event: event.event,
             value: newlyVestedShares * (grant.current_fmv || 0),
           });
+        }
+      }
+    });
+  }
+
+  // Add milestone events if they're in our time range
+  if (detailedVesting.milestones && detailedVesting.milestones.length > 0) {
+    detailedVesting.milestones.forEach(milestone => {
+      if (milestone.date > now && milestone.date <= futureDate) {
+        // Check if this milestone is already in events by date matching
+        const existingEventIndex = events.findIndex(
+          event => event.date.getTime() === milestone.date.getTime()
+        );
+        
+        if (existingEventIndex >= 0) {
+          // Update existing event with milestone info
+          events[existingEventIndex].event = milestone.event;
+          events[existingEventIndex].isMilestone = true;
+          events[existingEventIndex].percentage = milestone.percentage;
         }
       }
     });
@@ -620,5 +885,65 @@ export function handleDoubleTriggerRSUs(grant, liquidityEvent) {
     vestingValue: timeBasedVesting.vestedShares * liquidityEvent.sharePrice,
     taxableIncome: timeBasedVesting.vestedShares * liquidityEvent.sharePrice,
     remainingUnvestedShares: grant.shares - timeBasedVesting.vestedShares,
+  };
+}
+
+/**
+ * Handle M&A acceleration scenario
+ * @param {Object} grant - The equity grant
+ * @param {Object} mnaEvent - Details about the M&A event
+ * @param {boolean} doubleTrigger - Whether this is a double-trigger acceleration
+ * @returns {Object} Vesting implications after M&A event
+ */
+export function handleMnAAcceleration(grant, mnaEvent, doubleTrigger = false) {
+  // Calculate normal vesting as of M&A event
+  const normalVesting = calculateDetailedVesting(
+    grant,
+    new Date(mnaEvent.date)
+  );
+  
+  // If double-trigger, check if termination happened within window
+  let accelerationApplies = !doubleTrigger; // Single trigger always applies
+  
+  if (doubleTrigger && mnaEvent.terminationDate) {
+    // Check if termination is within the double-trigger window (typically 3-12 months)
+    const terminationDate = new Date(mnaEvent.terminationDate);
+    const eventDate = new Date(mnaEvent.date);
+    const windowDays = mnaEvent.windowDays || 90; // Default 90-day window
+    
+    const daysBetween = (terminationDate - eventDate) / (1000 * 60 * 60 * 24);
+    accelerationApplies = daysBetween >= 0 && daysBetween <= windowDays;
+  }
+  
+  // If acceleration doesn't apply, return normal vesting
+  if (!accelerationApplies) {
+    return {
+      applicable: false,
+      message: doubleTrigger ? "Double-trigger conditions not met" : "Acceleration not applicable",
+      normalVestedShares: normalVesting.vestedShares,
+      normalUnvestedShares: normalVesting.unvestedShares,
+      acceleratedShares: 0,
+      totalVestedShares: normalVesting.vestedShares,
+      totalVestedValue: normalVesting.vestedShares * mnaEvent.sharePrice,
+    };
+  }
+  
+  // Determine acceleration percentage (typically 50% or 100%)
+  const accelerationPercentage = mnaEvent.accelerationPercentage || 100;
+  
+  // Calculate how many additional shares vest due to acceleration
+  const acceleratedShares = Math.floor(
+    normalVesting.unvestedShares * (accelerationPercentage / 100)
+  );
+  
+  return {
+    applicable: true,
+    normalVestedShares: normalVesting.vestedShares,
+    normalUnvestedShares: normalVesting.unvestedShares,
+    acceleratedShares,
+    totalVestedShares: normalVesting.vestedShares + acceleratedShares,
+    totalVestedValue: (normalVesting.vestedShares + acceleratedShares) * mnaEvent.sharePrice,
+    accelerationType: doubleTrigger ? "Double-Trigger" : "Single-Trigger",
+    accelerationPercentage
   };
 }

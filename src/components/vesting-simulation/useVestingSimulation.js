@@ -5,8 +5,27 @@ import {
   addDays,
   differenceInDays,
   addQuarters,
+  parseISO,
+  differenceInMonths,
 } from "date-fns";
+import { formatCurrency, formatNumber } from "@/utils/format-utils";
+import { 
+  handleDoubleTriggerRSUs, 
+  handleMnAAcceleration,
+  calculateDetailedVesting
+} from "@/utils/enhanced-vesting-calculations";
 
+/**
+ * Custom hook for simulating various vesting scenarios and schedules
+ * 
+ * Features:
+ * - Simulates different life events (leaving before/after cliff, M&A events)
+ * - Models different vesting schedules (monthly, quarterly, no-cliff, accelerated)
+ * - Visualizes vesting acceleration during acquisition events
+ * - Compares standard vesting vs. accelerated vesting with reference lines
+ * - Calculates key metrics like time saved with accelerated vesting
+ * - Supports visualization of double-trigger and single-trigger acceleration
+ */
 export function useVestingSimulation() {
   const [simulationModalOpen, setSimulationModalOpen] = useState(false);
   const [currentSimulation, setCurrentSimulation] = useState(null);
@@ -19,7 +38,8 @@ export function useVestingSimulation() {
     totalShares,
     scheduleType,
     cliffMonths,
-    sharePrice
+    sharePrice,
+    accelerationFactor = null
   ) => {
     const dataPoints = [];
     const start = new Date(startDate);
@@ -72,6 +92,15 @@ export function useVestingSimulation() {
     let currentDate = cliff || start;
     let currentShares = cliff ? cliffShares : 0;
 
+    // Calculate acceleration end date if accelerated vesting
+    let vestingEnd = new Date(end);
+    if (accelerationFactor) {
+      // For accelerated vesting, we complete vesting earlier
+      const totalPeriod = differenceInDays(end, cliff || start);
+      const acceleratedPeriod = totalPeriod / accelerationFactor;
+      vestingEnd = addDays(cliff || start, acceleratedPeriod);
+    }
+
     while (currentDate < end) {
       if (scheduleType === "quarterly") {
         currentDate = addQuarters(currentDate, 1);
@@ -92,16 +121,39 @@ export function useVestingSimulation() {
         // Fully vested at end date
         currentShares = totalShares;
       } else {
-        // Calculate based on vesting schedule
+        // Calculate based on vesting schedule and acceleration
         const monthsSinceStart = differenceInDays(currentDate, start) / 30;
         const monthsSinceCliff = cliff
           ? differenceInDays(currentDate, cliff) / 30
           : 0;
 
-        if (cliff) {
+        if (accelerationFactor && cliff && currentDate > cliff) {
+          // Accelerated vesting after cliff
+          const totalPostCliffMonths = differenceInDays(end, cliff) / 30;
+          const elapsedPostCliffMonths = monthsSinceCliff; 
+          
+          // Apply acceleration factor to determine progress
+          const acceleratedProgress = Math.min(
+            elapsedPostCliffMonths * accelerationFactor / totalPostCliffMonths,
+            1
+          );
+          
+          currentShares = cliffShares + Math.floor(remainingShares * acceleratedProgress);
+        } else if (accelerationFactor && !cliff) {
+          // Accelerated vesting without cliff
+          const totalMonths = differenceInDays(end, start) / 30;
+          const acceleratedProgress = Math.min(
+            monthsSinceStart * accelerationFactor / totalMonths,
+            1
+          );
+          
+          currentShares = Math.floor(totalShares * acceleratedProgress);
+        } else if (cliff) {
+          // Normal vesting with cliff
           currentShares =
             cliffShares + Math.floor(monthsSinceCliff * sharesPerMonth);
         } else {
+          // Normal vesting without cliff
           currentShares = Math.floor(monthsSinceStart * sharesPerMonth);
         }
 
@@ -148,6 +200,7 @@ export function useVestingSimulation() {
       chartConfig: {
         showPercentage: true,
         showValue: true,
+        showReference: false, // Default, will be enabled for acceleration scenarios
       },
       events: [],
       notes: [],
@@ -247,7 +300,7 @@ export function useVestingSimulation() {
         const daysVested = differenceInDays(twoYearsAfterStart, startDate);
         const vestingRatio = daysVested / totalVestingDays;
 
-        // With a 1-year cliff, you typically get 25% at cliff and the rest vests monthly
+        // Calculate based on vesting schedule
         let vestedShares;
         if (grant.vesting_schedule === "monthly") {
           vestedShares = Math.floor(grant.shares * 0.5); // 2 years = 50% vested
@@ -399,6 +452,129 @@ export function useVestingSimulation() {
           "Even after full vesting, check your specific agreement for any post-termination exercise periods.",
         ];
         break;
+        
+      case "m-and-a":
+        simulationData.title = "M&A Acceleration";
+        simulationData.description =
+          "Simulation of vesting acceleration during a merger or acquisition event";
+
+        // Calculate dates
+        const mnaGrantDate = new Date(grant.vesting_start_date);
+        const mnaEndDate = new Date(grant.vesting_end_date);
+        const mnaCliffDate = grant.vesting_cliff_date ? new Date(grant.vesting_cliff_date) : null;
+        
+        // Set acquisition date to 18 months after start
+        const acquisitionDate = addMonths(mnaGrantDate, 18);
+        const sharePrice = grant.current_fmv * 1.5; // Acquisition usually at premium
+        
+        // Calculate normal vesting at acquisition
+        const normalVesting = calculateDetailedVesting(grant, acquisitionDate);
+        
+        // Simulate single-trigger 100% acceleration
+        const singleTrigger = handleMnAAcceleration(
+          grant, 
+          { 
+            date: acquisitionDate, 
+            sharePrice,
+            accelerationPercentage: 100 
+          }, 
+          false
+        );
+        
+        // Create standard vesting data for reference line
+        const standardVestingData = generateVestingDataPoints(
+          mnaGrantDate,
+          mnaEndDate,
+          grant.shares,
+          grant.vesting_schedule || "monthly",
+          mnaCliffDate ? differenceInMonths(mnaCliffDate, mnaGrantDate) : 0,
+          grant.current_fmv
+        );
+        
+        // Generate chart data showing normal vesting until acquisition
+        const normalChartData = generateVestingDataPoints(
+          mnaGrantDate,
+          acquisitionDate,
+          grant.shares,
+          grant.vesting_schedule || "monthly",
+          mnaCliffDate ? differenceInMonths(mnaCliffDate, mnaGrantDate) : 0,
+          grant.current_fmv
+        );
+        
+        // Add the acquisition event point with accelerated vesting
+        normalChartData.push({
+          date: acquisitionDate,
+          sharesVested: singleTrigger.totalVestedShares,
+          percentageVested: (singleTrigger.totalVestedShares / grant.shares) * 100,
+          value: singleTrigger.totalVestedShares * sharePrice,
+          event: "M&A Event",
+        });
+        
+        // Add reference points for standard vesting to the chart data
+        normalChartData.forEach(point => {
+          // Find the corresponding point in standard vesting data
+          const standardPoint = standardVestingData.find(std => 
+            new Date(std.date).getTime() === new Date(point.date).getTime()
+          );
+          
+          if (standardPoint) {
+            point.referenceVesting = standardPoint.sharesVested;
+          }
+        });
+        
+        simulationData.chartData = normalChartData;
+        
+        // Enable reference line for comparison
+        simulationData.chartConfig.showReference = true;
+
+        // Add metrics
+        simulationData.metrics = [
+          { label: "Total Shares", value: grant.shares, type: "number" },
+          { label: "Normally Vested", value: normalVesting.vestedShares, type: "number" },
+          { label: "Accelerated Shares", value: singleTrigger.acceleratedShares, type: "number" },
+          { label: "Total Vested", value: singleTrigger.totalVestedShares, type: "number" },
+          {
+            label: "Value at Acquisition",
+            value: singleTrigger.totalVestedShares * sharePrice,
+            type: "currency",
+          },
+        ];
+
+        // Add events
+        simulationData.events = [
+          {
+            title: "Grant Date",
+            description: `Received ${grant.shares.toLocaleString()} shares of ${
+              grant.grant_type
+            }`,
+            date: mnaGrantDate,
+            type: "neutral",
+          },
+          {
+            title: "Cliff Date",
+            description: `Vested ${Math.floor(
+              grant.shares * 0.25
+            ).toLocaleString()} shares (25%)`,
+            date: mnaCliffDate,
+            type: "positive",
+          },
+          {
+            title: "Acquisition Event",
+            description: `Company acquired, triggering acceleration of ${singleTrigger.acceleratedShares.toLocaleString()} unvested shares`,
+            date: acquisitionDate,
+            type: "acceleration",
+          },
+        ];
+
+        // Add explanatory notes
+        simulationData.notes = [
+          "During an acquisition, vesting acceleration provisions may be triggered.",
+          "Single-trigger: Vesting accelerates immediately upon change of control.",
+          "Double-trigger: Requires both change of control AND termination within a specified period.",
+          "Acceleration can be full (100%) or partial (e.g., 50% or 12 months of unvested shares).",
+          "The acquired company's stock is typically converted to acquirer's stock or cash at a predetermined ratio."
+        ];
+        break;
 
       default:
         simulationData.title = "Generic Vesting Scenario";
@@ -456,6 +632,7 @@ export function useVestingSimulation() {
       chartConfig: {
         showPercentage: true,
         showValue: true,
+        showReference: false, // Default, will be enabled for acceleration scenarios
       },
       events: [],
       notes: [],
@@ -684,6 +861,124 @@ export function useVestingSimulation() {
           "No-cliff vesting provides immediate equity accrual from the first month.",
           "This is less common for new employees but may be used for senior hires or in certain acquisitions.",
           "Without a cliff, there's potentially less incentive for short-term retention compared to cliff vesting.",
+        ];
+        break;
+        
+      case "accelerated":
+        simulationData.title = "Accelerated Vesting Schedule";
+        simulationData.description =
+          "Simulation of accelerated equity vesting schedule (typically for performance-based or milestone triggers)";
+
+        // Define acceleration factor (typically 1.25x to 2x standard rate)
+        const accelerationFactor = 1.5;
+        
+        // Define cliff date (1 year after start)
+        const acceleratedCliffDate = addMonths(startDate, 12);
+        
+        // Calculate accelerated vesting end date
+        const standardVestingDays = differenceInDays(endDate, startDate);
+        const acceleratedVestingDays = standardVestingDays / accelerationFactor;
+        const acceleratedEndDate = addDays(startDate, acceleratedVestingDays);
+
+        // Generate vesting data with acceleration
+        // Generate standard vesting data for reference
+        const standardVestingData = generateVestingDataPoints(
+          startDate,
+          endDate,
+          grant.shares,
+          "monthly",
+          12, // 12 months = 1 year cliff
+          grant.current_fmv
+        );
+        
+        // Generate accelerated vesting data
+        const acceleratedVestingData = generateVestingDataPoints(
+          startDate,
+          endDate,
+          grant.shares,
+          "monthly",
+          12, // 12 months = 1 year cliff
+          grant.current_fmv,
+          accelerationFactor
+        );
+        
+        // Add reference vesting data points
+        acceleratedVestingData.forEach(point => {
+          // Find the corresponding point in standard vesting data
+          const standardPoint = standardVestingData.find(std => 
+            new Date(std.date).getTime() === new Date(point.date).getTime()
+          );
+          
+          if (standardPoint) {
+            point.referenceVesting = standardPoint.sharesVested;
+          }
+        });
+        
+        simulationData.chartData = acceleratedVestingData;
+        
+        // Enable reference line to show standard vs accelerated
+        simulationData.chartConfig.showReference = true;
+        
+        // Calculate months saved with acceleration
+        const monthsSaved = differenceInMonths(endDate, acceleratedEndDate);
+
+        // Add metrics
+        simulationData.metrics = [
+          { label: "Total Shares", value: grant.shares, type: "number" },
+          { label: "Acceleration Factor", value: `${accelerationFactor}x`, type: "text" },
+          {
+            label: "Standard End Date",
+            value: format(endDate, "MM/dd/yyyy"),
+            type: "text",
+          },
+          {
+            label: "Accelerated End Date",
+            value: format(acceleratedEndDate, "MM/dd/yyyy"),
+            type: "text",
+          },
+          {
+            label: "Months Saved",
+            value: monthsSaved,
+            type: "number",
+          },
+        ];
+
+        // Add key events
+        simulationData.events = [
+          {
+            title: "Grant Date",
+            description: `Grant of ${grant.shares.toLocaleString()} shares begins vesting`,
+            date: startDate,
+            type: "neutral",
+          },
+          {
+            title: "Cliff Date",
+            description: `${Math.floor(
+              grant.shares * 0.25
+            ).toLocaleString()} shares (25%) vest at once`,
+            date: acceleratedCliffDate,
+            type: "positive",
+          },
+          {
+            title: "Accelerated Vesting Completed",
+            description: `All shares vested ${monthsSaved} months earlier than standard schedule`,
+            date: acceleratedEndDate,
+            type: "acceleration",
+          },
+          {
+            title: "Original Vesting End Date",
+            description: `Original end date without acceleration`,
+            date: endDate,
+            type: "neutral",
+          },
+        ];
+
+        // Add explanatory notes
+        simulationData.notes = [
+          "Accelerated vesting completes the vesting schedule faster than standard vesting.",
+          "Acceleration can be triggered by personal performance, company milestones, or M&A events.",
+          `With a ${accelerationFactor}x acceleration factor, vesting completes ${monthsSaved} months earlier.`,
+          "Acceleration typically applies only to unvested shares at the time the triggering event occurs.",
         ];
         break;
 

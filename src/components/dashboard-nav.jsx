@@ -115,11 +115,11 @@ export function DashboardNav() {
   return (
     <div
       className={cn(
-        "relative h-full transition-all duration-300 ease-in-out border-r bg-background/95 group",
+        "fixed top-0 bottom-0 left-0 z-20 h-full transition-all duration-300 ease-in-out border-r bg-background/95 group",
         expanded ? "w-64" : "w-16"
       )}
-      onMouseEnter={() => !expanded && setExpanded(true)}
-      onMouseLeave={() => window.innerWidth < 1024 && setExpanded(false)}
+      onMouseEnter={() => !expanded && window.innerWidth >= 768 && setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
     >
       <Button
         variant="ghost"
@@ -139,46 +139,48 @@ export function DashboardNav() {
         {expanded && <span className="text-xl font-bold">VestQuest</span>}
       </div>
 
-      <nav className="grid items-start gap-2 p-4">
-        {items.map((item, index) => (
-          <div key={index}>
-            <Link href={item.href}>
-              <Button
-                variant={item.isActive ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start",
-                  item.isActive ? "bg-primary/10 text-primary font-medium" : "",
-                  !expanded && "justify-center"
-                )}
-                title={!expanded ? item.title : undefined}
-              >
-                <item.icon className={cn("h-5 w-5", expanded && "mr-2")} />
-                {expanded && <span>{item.title}</span>}
-              </Button>
-            </Link>
+      <nav className="overflow-y-auto max-h-[calc(100vh-4rem)] p-4">
+        <div className="grid items-start gap-2">
+          {items.map((item, index) => (
+            <div key={index}>
+              <Link href={item.href}>
+                <Button
+                  variant={item.isActive ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start",
+                    item.isActive ? "bg-primary/10 text-primary font-medium" : "",
+                    !expanded && "justify-center"
+                  )}
+                  title={!expanded ? item.title : undefined}
+                >
+                  <item.icon className={cn("h-5 w-5", expanded && "mr-2")} />
+                  {expanded && <span>{item.title}</span>}
+                </Button>
+              </Link>
 
-            {/* Show sub-items if expanded and the item has sub-items */}
-            {expanded && item.subItems && (
-              <div className="ml-7 mt-1 space-y-1">
-                {item.subItems.map((subItem, subIndex) => (
-                  <Link key={subIndex} href={subItem.href}>
-                    <Button
-                      variant={subItem.isActive ? "secondary" : "ghost"}
-                      className={cn(
-                        "w-full justify-start h-8 text-sm",
-                        subItem.isActive
-                          ? "bg-primary/5 text-primary font-medium"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      <span>{subItem.title}</span>
-                    </Button>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+              {/* Show sub-items if expanded and the item has sub-items */}
+              {expanded && item.subItems && (
+                <div className="ml-7 mt-1 space-y-1">
+                  {item.subItems.map((subItem, subIndex) => (
+                    <Link key={subIndex} href={subItem.href}>
+                      <Button
+                        variant={subItem.isActive ? "secondary" : "ghost"}
+                        className={cn(
+                          "w-full justify-start h-8 text-sm",
+                          subItem.isActive
+                            ? "bg-primary/5 text-primary font-medium"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        <span>{subItem.title}</span>
+                      </Button>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </nav>
     </div>
   );

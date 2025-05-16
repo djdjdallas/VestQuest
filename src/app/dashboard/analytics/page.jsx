@@ -35,10 +35,25 @@ export default function AnalyticsPage() {
   const [timeframe, setTimeframe] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Set mounted state to handle client-side only code
+  // Set mounted state to handle client-side only code and detect mobile
   useEffect(() => {
     setMounted(true);
+    
+    // Handle responsive layout detection
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
   // Use custom hook for data fetching
@@ -156,9 +171,9 @@ export default function AnalyticsPage() {
         heading="Analytics"
         text="Detailed analysis of your equity portfolio."
       >
-        <div className="flex items-center gap-2">
+        <div className={`flex flex-wrap ${isMobile ? 'flex-col w-full' : ''} items-center gap-2`}>
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className={isMobile ? "w-full" : "w-[180px]"}>
               <Filter className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Filter by Company" />
             </SelectTrigger>
@@ -173,12 +188,12 @@ export default function AnalyticsPage() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className={isMobile ? "w-full" : ""}>
                 <Calendar className="mr-2 h-4 w-4" />
                 Timeframe
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent align={isMobile ? "center" : "end"}>
               <DropdownMenuItem onClick={() => setTimeframe("all")}>
                 All Time
               </DropdownMenuItem>
@@ -194,17 +209,29 @@ export default function AnalyticsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button onClick={exportData}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Data
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className={isMobile ? "w-full" : ""}>
+                <Download className="mr-2 h-4 w-4" />
+                Export Data
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={isMobile ? "center" : "end"}>
+              <DropdownMenuItem onClick={() => exportData('json')}>
+                Export as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportData('csv')}>
+                Export as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </DashboardHeader>
 
       <OverviewMetrics analytics={enhancedAnalytics} grants={grants} />
 
       <Tabs defaultValue="portfolio" className="mt-6 space-y-6">
-        <TabsList>
+        <TabsList className={isMobile ? "flex flex-col space-y-1 h-auto" : ""}>
           <TabsTrigger value="portfolio">Portfolio Analysis</TabsTrigger>
           <TabsTrigger value="vesting">Vesting Forecast</TabsTrigger>
           <TabsTrigger value="scenarios">Scenario Comparison</TabsTrigger>
