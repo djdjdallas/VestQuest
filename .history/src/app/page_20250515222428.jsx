@@ -160,7 +160,7 @@ export default function HomePage() {
                   </span>
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                     Take control of your equity{" "}
-                    <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-md font-bold animate-fade-in-out">
+                    <span className="text-primary">
                       {rotatingWords[rotatingWordIndex]}
                     </span>
                   </h1>
