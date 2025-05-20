@@ -16,8 +16,6 @@ import {
   Twitter,
   Menu,
   X,
-  LogOut,
-  User,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,8 +30,6 @@ import {
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Add isLoggedIn state to track authentication status
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   // Dynamic headline rotation
   const [rotatingWordIndex, setRotatingWordIndex] = useState(0);
   const rotatingWords = [
@@ -52,23 +48,8 @@ export default function HomePage() {
       );
     }, 2000);
 
-    // Check if user is logged in - this would typically come from your auth provider
-    // For demo purposes, we're just checking localStorage
-    const checkAuthStatus = () => {
-      const userToken = localStorage.getItem("userToken");
-      setIsLoggedIn(!!userToken);
-    };
-
-    checkAuthStatus();
     return () => clearInterval(interval);
   }, []);
-
-  // Function to handle logout
-  const handleLogout = () => {
-    localStorage.removeItem("userToken");
-    setIsLoggedIn(false);
-    // You would typically also call your auth provider's logout method here
-  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -79,54 +60,31 @@ export default function HomePage() {
             <span className="text-xl font-bold">Vestup</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            {/* Always show Calculator and Education links */}
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Dashboard
+            </Link>
             <Link
               href="/calculator"
               className="text-sm font-medium hover:text-primary transition-colors"
             >
               Calculator
             </Link>
+
             <Link
               href="/education"
               className="text-sm font-medium hover:text-primary transition-colors"
             >
               Education
             </Link>
-
-            {/* Conditionally show Dashboard for logged in users, or Login/Signup for logged out users */}
-            {isLoggedIn ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className="text-sm font-medium hover:text-primary transition-colors"
-                >
-                  Dashboard
-                </Link>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" title="Account">
-                    <User className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="flex items-center gap-1"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/login">Login</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link href="/signup">Sign Up</Link>
-                </Button>
-              </>
-            )}
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login">Login</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/signup">Sign Up</Link>
+            </Button>
           </nav>
           <Button
             variant="ghost"
@@ -145,7 +103,13 @@ export default function HomePage() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden px-4 py-4 space-y-4 border-t">
-            {/* Always show Calculator and Education links */}
+            <Link
+              href="/dashboard"
+              className="block py-2 text-sm font-medium hover:text-primary"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
             <Link
               href="/calculator"
               className="block py-2 text-sm font-medium hover:text-primary"
@@ -160,38 +124,14 @@ export default function HomePage() {
             >
               Education
             </Link>
-
-            {/* Conditionally show Dashboard for logged in users, or Login/Signup for logged out users */}
-            {isLoggedIn ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className="block py-2 text-sm font-medium hover:text-primary"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    onClick={handleLogout}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    Logout
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <div className="flex gap-2 pt-2">
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link href="/login">Login</Link>
-                </Button>
-                <Button asChild size="sm" className="w-full">
-                  <Link href="/signup">Sign Up</Link>
-                </Button>
-              </div>
-            )}
+            <div className="flex gap-2 pt-2">
+              <Button asChild variant="outline" size="sm" className="w-full">
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild size="sm" className="w-full">
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+            </div>
           </div>
         )}
       </header>

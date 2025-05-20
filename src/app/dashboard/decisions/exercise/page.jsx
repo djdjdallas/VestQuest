@@ -42,7 +42,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip } from "@/components/ui/tooltip";
-import { ScenarioBuilder } from "@/components/decisions/ScenarioBuilder";
+import ScenarioBuilder from "@/components/decisions/ScenarioBuilder";
 import { BarChart } from "lucide-react";
 import { Clock } from "lucide-react";
 export default function ExerciseDecisionGuidePage() {

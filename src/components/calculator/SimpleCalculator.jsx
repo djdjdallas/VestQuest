@@ -31,9 +31,9 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { InfoIcon, ArrowRightIcon, CalculatorIcon } from "lucide-react";
+import { InfoIcon, ArrowRightIcon, CalculatorIcon, LockIcon } from "lucide-react";
 
-export function SimpleCalculator() {
+export function SimpleCalculator({ onCalculationComplete }) {
   // Basic inputs
   const [grantType, setGrantType] = useState("ISO");
   const [shares, setShares] = useState(1000);
@@ -88,7 +88,7 @@ export function SimpleCalculator() {
     const netProceeds = grossProceeds - exerciseCost - taxes.total_tax;
     const roi = exerciseCost > 0 ? (netProceeds / exerciseCost) * 100 : 0;
 
-    setResult({
+    const calculationResult = {
       exerciseCost,
       grossProceeds,
       taxes,
@@ -98,7 +98,14 @@ export function SimpleCalculator() {
       exitPrice,
       strikePrice,
       spreadPerShare: exitPrice - strikePrice,
-    });
+    };
+
+    setResult(calculationResult);
+    
+    // Notify parent component that calculation is complete
+    if (onCalculationComplete) {
+      onCalculationComplete(calculationResult);
+    }
   };
 
   // Determine if gain would be long-term based on exercise and exit dates
@@ -449,6 +456,22 @@ export function SimpleCalculator() {
             </div>
           </div>
         )}
+
+        {/* Hint towards premium features */}
+        <div className="mt-6">
+          <div className="p-4 border rounded-md bg-muted/20 flex items-center gap-3">
+            <LockIcon className="h-5 w-5 text-muted-foreground" />
+            <div className="flex-1">
+              <h4 className="text-sm font-medium">Need more detailed analysis?</h4>
+              <p className="text-xs text-muted-foreground">
+                Create a free account to access advanced tax modeling, scenario comparisons, and personalized recommendations.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/register">Sign Up</a>
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
     </TooltipProvider>
