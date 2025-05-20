@@ -361,7 +361,22 @@ export default function Education() {
             title: path.title,
             description: path.description,
             level: path.level,
-            modules: typeof path.modules === 'object' ? path.modules : [],
+            modules: Array.isArray(path.modules) ? path.modules : 
+              (typeof path.modules === 'object' && path.modules !== null) ? 
+                Object.values(path.modules) : 
+                [
+                  {
+                    id: "default_module_1",
+                    title: "Introduction",
+                    description: "Introduction to this learning path",
+                    content_sections: [
+                      {
+                        title: "Getting Started",
+                        content: "This is the default content for this learning path. Please check back later for more detailed content."
+                      }
+                    ]
+                  }
+                ],
             recommended_for: Array.isArray(path.recommended_for)
               ? path.recommended_for
               : [],
@@ -778,8 +793,8 @@ export default function Education() {
                             <span>
                               {Math.round(
                                 ((learningProgress[currentLearningPath.id]
-                                  .completed_modules?.length || 0) /
-                                  (currentLearningPath.modules?.length || 1)) *
+                                  ?.completed_modules?.length || 0) /
+                                  (Array.isArray(currentLearningPath.modules) ? currentLearningPath.modules.length : 1)) *
                                   100
                               )}
                               %
@@ -791,9 +806,8 @@ export default function Education() {
                               style={{
                                 width: `${Math.round(
                                   ((learningProgress[currentLearningPath.id]
-                                    .completed_modules?.length || 0) /
-                                    (currentLearningPath.modules?.length ||
-                                      1)) *
+                                    ?.completed_modules?.length || 0) /
+                                    (Array.isArray(currentLearningPath.modules) ? currentLearningPath.modules.length : 1)) *
                                     100
                                 )}%`,
                               }}
@@ -805,20 +819,22 @@ export default function Education() {
 
                     {/* Modules */}
                     <div className="space-y-4">
-                      {currentLearningPath.modules?.map((module, index) => {
+                      {Array.isArray(currentLearningPath.modules) && currentLearningPath.modules.map((module, index) => {
+                        // Ensure module has an id
+                        const moduleId = module.id || `module_${index}`;
                         const isCompleted = learningProgress[
                           currentLearningPath.id
-                        ]?.completed_modules?.includes(module.id);
+                        ]?.completed_modules?.includes(moduleId);
                         const isActive =
                           learningProgress[currentLearningPath.id]
-                            ?.current_module === module.id ||
+                            ?.current_module === moduleId ||
                           (!learningProgress[currentLearningPath.id]
                             ?.current_module &&
                             index === 0);
 
                         return (
                           <div
-                            key={module.id}
+                            key={moduleId}
                             className={`border rounded-lg p-4 ${
                               isCompleted
                                 ? "bg-primary/5 border-primary/30"
@@ -860,7 +876,7 @@ export default function Education() {
                                       ...prev,
                                       [currentLearningPath.id]: {
                                         ...pathProgress,
-                                        current_module: module.id,
+                                        current_module: moduleId,
                                       },
                                     };
                                   });
@@ -885,7 +901,7 @@ export default function Education() {
 
                             {isActive && (
                               <div className="mt-4 space-y-3">
-                                {module.content_sections?.map(
+                                {Array.isArray(module.content_sections) ? module.content_sections.map(
                                   (section, sectionIndex) => (
                                     <div
                                       key={sectionIndex}
@@ -913,6 +929,10 @@ export default function Education() {
                                       )}
                                     </div>
                                   )
+                                ) : (
+                                  <div className="text-muted-foreground py-2">
+                                    No detailed content available for this module yet.
+                                  </div>
                                 )}
 
                                 {/* Complete module button */}
@@ -933,13 +953,13 @@ export default function Education() {
                                           completed_modules: [
                                             ...(pathProgress.completed_modules ||
                                               []),
-                                            module.id,
+                                            moduleId,
                                           ],
                                           // Set next module as current
                                           current_module:
-                                            currentLearningPath.modules[
-                                              index + 1
-                                            ]?.id || null,
+                                            Array.isArray(currentLearningPath.modules) && 
+                                            currentLearningPath.modules[index + 1] ? 
+                                              (currentLearningPath.modules[index + 1].id || `module_${index + 1}`) : null,
                                         },
                                       };
                                     });
@@ -1156,52 +1176,64 @@ export default function Education() {
                       variant="outline"
                       size="lg"
                       className="h-auto py-4 flex flex-col items-center justify-center"
+                      asChild
                     >
-                      <span className="font-medium">
-                        I need help deciding whether to exercise my options
-                      </span>
-                      <span className="text-sm text-muted-foreground mt-1">
-                        Early exercise, post-vest exercise, or hold
-                      </span>
+                      <Link href="/dashboard/decisions/exercise">
+                        <span className="font-medium">
+                          I need help deciding whether to exercise my options
+                        </span>
+                        <span className="text-sm text-muted-foreground mt-1">
+                          Early exercise, post-vest exercise, or hold
+                        </span>
+                      </Link>
                     </Button>
 
                     <Button
                       variant="outline"
                       size="lg"
                       className="h-auto py-4 flex flex-col items-center justify-center"
+                      asChild
                     >
-                      <span className="font-medium">
-                        I need help understanding my equity grant
-                      </span>
-                      <span className="text-sm text-muted-foreground mt-1">
-                        Vesting schedule, grant type, and value
-                      </span>
+                      <Link href="/dashboard/analytics">
+                        <span className="font-medium">
+                          I need help understanding my equity grant
+                        </span>
+                        <span className="text-sm text-muted-foreground mt-1">
+                          Vesting schedule, grant type, and value
+                        </span>
+                      </Link>
                     </Button>
 
                     <Button
                       variant="outline"
                       size="lg"
                       className="h-auto py-4 flex flex-col items-center justify-center"
+                      asChild
                     >
-                      <span className="font-medium">
-                        I need help with tax planning
-                      </span>
-                      <span className="text-sm text-muted-foreground mt-1">
-                        AMT, QSBS, 83(b), and more
-                      </span>
+                      <Link href="/dashboard/calculator/tax">
+                        <span className="font-medium">
+                          I need help with tax planning
+                        </span>
+                        <span className="text-sm text-muted-foreground mt-1">
+                          AMT, QSBS, 83(b), and more
+                        </span>
+                      </Link>
                     </Button>
 
                     <Button
                       variant="outline"
                       size="lg"
                       className="h-auto py-4 flex flex-col items-center justify-center"
+                      asChild
                     >
-                      <span className="font-medium">
-                        I'm considering leaving my company
-                      </span>
-                      <span className="text-sm text-muted-foreground mt-1">
-                        Post-termination exercise window and considerations
-                      </span>
+                      <Link href="/dashboard/decisions/exit">
+                        <span className="font-medium">
+                          I'm considering leaving my company
+                        </span>
+                        <span className="text-sm text-muted-foreground mt-1">
+                          Post-termination exercise window and considerations
+                        </span>
+                      </Link>
                     </Button>
                   </div>
                 </div>
