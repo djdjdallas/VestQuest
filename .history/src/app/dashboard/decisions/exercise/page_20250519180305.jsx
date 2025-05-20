@@ -1608,7 +1608,11 @@ export default function ExerciseDecisionGuidePage() {
                       <CardFooter>
                         <div className="flex items-start text-sm">
                           <div className="mr-2 mt-0.5">
-                            <Info className="h-4 w-4 text-primary" />
+                            {key === result?.bestTaxStrategy ? (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Info className="h-4 w-4 text-primary" />
+                            )}
                           </div>
                           <p className="text-sm">
                             {selectedGrant?.grant_type === GRANT_TYPES.ISO
