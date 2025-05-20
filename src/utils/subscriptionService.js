@@ -21,9 +21,20 @@ export const createCheckoutSession = async (tier, billingCycle, user) => {
 
     console.log(`Creating checkout for ${tier} (${billingCycle}) for user ${user.id}`);
     
+    // Check if this is from a trial by looking at existing subscription data
+    const { data: existingSubscription } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .eq('is_trial', true)
+      .maybeSingle();
+      
+    const isFromTrial = !!existingSubscription;
+    
     // Mock response - in production, return the actual checkout URL from Stripe
     return {
-      url: `/checkout/mock?tier=${tier}&cycle=${billingCycle}`,
+      url: `/checkout/mock?tier=${tier}&cycle=${billingCycle}&from_trial=${isFromTrial}`,
       sessionId: "mock_session_" + Math.random().toString(36).substring(2, 15)
     };
 
@@ -103,7 +114,7 @@ export const handleCheckoutSuccess = async (sessionId) => {
  */
 export const createOrUpdateSubscription = async (subscriptionData) => {
   try {
-    const { userId, tier, billingCycle, subscriptionId } = subscriptionData;
+    const { userId, tier, billingCycle, subscriptionId, isTrial = false } = subscriptionData;
     
     // Calculate expiration date (1 month or 1 year from now)
     const now = new Date();
@@ -113,6 +124,9 @@ export const createOrUpdateSubscription = async (subscriptionData) => {
     } else {
       expiresAt.setMonth(expiresAt.getMonth() + 1);
     }
+    
+    // Calculate trial end date (14 days from now, if this is a trial)
+    const trialEndsAt = isTrial ? new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000) : null;
 
     // Deactivate any existing active subscriptions
     await supabase
@@ -131,7 +145,9 @@ export const createOrUpdateSubscription = async (subscriptionData) => {
         payment_id: subscriptionId,
         starts_at: now.toISOString(),
         expires_at: expiresAt.toISOString(),
-        is_active: true
+        is_active: true,
+        is_trial: isTrial,
+        trial_ends_at: trialEndsAt ? trialEndsAt.toISOString() : null
       })
       .select()
       .single();
@@ -254,6 +270,53 @@ export const getManagementPortalUrl = async (userId) => {
     };
   } catch (error) {
     console.error('Error getting management portal URL:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create a new trial subscription for a user
+ * @param {string} userId - The user's ID
+ * @param {string} tier - The subscription tier for the trial
+ * @returns {Promise<Object>} - The created trial subscription
+ */
+export const createTrialSubscription = async (userId, tier = SUBSCRIPTION_TIERS.BASIC) => {
+  try {
+    // Calculate trial end date (14 days from now)
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    
+    // Deactivate any existing active subscriptions
+    await supabase
+      .from('user_subscriptions')
+      .update({ is_active: false })
+      .eq('user_id', userId)
+      .eq('is_active', true);
+    
+    // Create trial subscription
+    const { data, error } = await supabase
+      .from('user_subscriptions')
+      .insert({
+        user_id: userId,
+        subscription_tier: tier,
+        billing_cycle: 'monthly', // Default to monthly for trials
+        starts_at: now.toISOString(),
+        expires_at: trialEndsAt.toISOString(), // Trial expires in 14 days
+        is_active: true,
+        is_trial: true,
+        trial_ends_at: trialEndsAt.toISOString()
+      })
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating trial subscription:', error);
+      throw new Error('Failed to create trial subscription');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in createTrialSubscription:', error);
     throw error;
   }
 };

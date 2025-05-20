@@ -14,7 +14,7 @@ import { UpgradePrompt } from "./UpgradePrompt";
  * @returns {React.ReactNode}
  */
 export function FeatureGate({ feature, children, fallback }) {
-  const { hasFeature, getRequiredTierForFeature, isLoading } = useSubscription();
+  const { hasFeature, getRequiredTierForFeature, isLoading, isTrial, isTrialActive, trialEndsAt } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   // If the subscription data is still loading, show nothing or a loading state
@@ -35,6 +35,16 @@ export function FeatureGate({ feature, children, fallback }) {
   // Get the minimum required tier for this feature
   const requiredTier = getRequiredTierForFeature(feature);
   
+  // Format days remaining in trial
+  const getDaysRemaining = () => {
+    if (!trialEndsAt) return 0;
+    const today = new Date();
+    const endDate = new Date(trialEndsAt);
+    const diffTime = endDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+  
   // Default fallback is an upgrade button that opens the upgrade modal
   return (
     <>
@@ -44,11 +54,21 @@ export function FeatureGate({ feature, children, fallback }) {
           {FEATURE_NAMES[feature] || "This feature"} is available in the{" "}
           {requiredTier.charAt(0).toUpperCase() + requiredTier.slice(1)} plan or higher.
         </p>
+        
+        {isTrialActive && (
+          <div className="mb-4 p-2 bg-blue-50 rounded-md text-sm">
+            <p className="text-blue-800 font-medium">
+              You're in your 14-day free trial period! 
+              {getDaysRemaining() > 0 && ` (${getDaysRemaining()} days remaining)`}
+            </p>
+          </div>
+        )}
+        
         <button
           onClick={() => setShowUpgradeModal(true)}
           className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
         >
-          Upgrade to Access
+          {isTrialActive ? "Continue with Paid Plan" : "Upgrade to Access"}
         </button>
       </div>
       
@@ -58,6 +78,8 @@ export function FeatureGate({ feature, children, fallback }) {
           requiredTier={requiredTier}
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
+          isTrial={isTrial}
+          isTrialActive={isTrialActive}
         />
       )}
     </>

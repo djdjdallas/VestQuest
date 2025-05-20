@@ -30,9 +30,11 @@ import { useToast } from "@/components/ui/use-toast";
  * @param {string} props.requiredTier - The minimum tier required for this feature
  * @param {boolean} props.isOpen - Whether the modal is visible
  * @param {() => void} props.onClose - Function to call when modal is closed
+ * @param {boolean} props.isTrial - Whether the user is in a trial
+ * @param {boolean} props.isTrialActive - Whether the trial is still active
  * @returns {React.ReactNode}
  */
-export function UpgradePrompt({ feature, requiredTier, isOpen, onClose }) {
+export function UpgradePrompt({ feature, requiredTier, isOpen, onClose, isTrial, isTrialActive }) {
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -101,6 +103,13 @@ export function UpgradePrompt({ feature, requiredTier, isOpen, onClose }) {
           <DialogTitle>Upgrade Your Plan</DialogTitle>
           <DialogDescription>
             {featureName} is available in the {requiredTier.charAt(0).toUpperCase() + requiredTier.slice(1)} plan or higher.
+            {isTrialActive && (
+              <div className="mt-2 p-2 bg-blue-50 rounded-md text-sm">
+                <p className="text-blue-800 font-medium">
+                  You're currently in your 14-day free trial period!
+                </p>
+              </div>
+            )}
           </DialogDescription>
           <button
             onClick={onClose}
@@ -151,7 +160,9 @@ export function UpgradePrompt({ feature, requiredTier, isOpen, onClose }) {
                         Processing...
                       </>
                     ) : (
-                      `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`
+                      isTrialActive 
+                        ? `Continue with ${tier.charAt(0).toUpperCase() + tier.slice(1)}`
+                        : `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`
                     )}
                   </Button>
                 </div>

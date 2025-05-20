@@ -1,15 +1,10 @@
 export const SUBSCRIPTION_TIERS = {
-  FREE: "free",
   BASIC: "basic",
   PRO: "pro",
   PREMIUM: "premium",
 };
 
 export const SUBSCRIPTION_PRICES = {
-  [SUBSCRIPTION_TIERS.FREE]: {
-    monthly: 0,
-    yearly: 0,
-  },
   [SUBSCRIPTION_TIERS.BASIC]: {
     monthly: 9.99,
     yearly: 99,
@@ -59,7 +54,6 @@ export const FEATURE_NAMES = {
 };
 
 export const TIER_FEATURES = {
-  [SUBSCRIPTION_TIERS.FREE]: [FEATURES.EQUITY_TRACKING, FEATURES.BASIC_VESTING],
   [SUBSCRIPTION_TIERS.BASIC]: [
     FEATURES.EQUITY_TRACKING,
     FEATURES.BASIC_VESTING,

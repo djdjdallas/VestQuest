@@ -2,11 +2,13 @@
 CREATE TABLE IF NOT EXISTS user_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  subscription_tier TEXT NOT NULL CHECK (subscription_tier IN ('free', 'basic', 'pro', 'premium')),
+  subscription_tier TEXT NOT NULL CHECK (subscription_tier IN ('basic', 'pro', 'premium')),
   billing_cycle TEXT NOT NULL CHECK (billing_cycle IN ('monthly', 'yearly')),
   starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_trial BOOLEAN NOT NULL DEFAULT FALSE,
+  trial_ends_at TIMESTAMPTZ,
   payment_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -58,6 +60,7 @@ BEGIN
   ORDER BY us.created_at DESC
   LIMIT 1;
 
-  RETURN COALESCE(subscription_tier, 'free');
+  -- Return null if no subscription is found (instead of defaulting to 'free')
+  RETURN subscription_tier;
 END;
 $$ LANGUAGE plpgsql;

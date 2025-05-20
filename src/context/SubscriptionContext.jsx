@@ -15,10 +15,13 @@ const SubscriptionContext = createContext(null);
 export function SubscriptionProvider({ children }) {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState({
-    tier: SUBSCRIPTION_TIERS.FREE,
+    tier: SUBSCRIPTION_TIERS.BASIC,
     billingCycle: null,
     expiresAt: null,
     isActive: false,
+    isTrial: true,
+    trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+    isTrialActive: true,
     isLoading: true,
   });
   const supabase = createClient();
@@ -28,7 +31,10 @@ export function SubscriptionProvider({ children }) {
       if (!user) {
         setSubscription(prev => ({
           ...prev,
-          tier: SUBSCRIPTION_TIERS.FREE,
+          tier: SUBSCRIPTION_TIERS.BASIC,
+          isTrial: true,
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+          isTrialActive: true,
           isLoading: false,
         }));
         return;
@@ -41,12 +47,15 @@ export function SubscriptionProvider({ children }) {
           .select("count")
           .limit(1);
 
-        // If the table doesn't exist yet, default to FREE tier
+        // If the table doesn't exist yet, default to BASIC tier with trial
         if (tableError && tableError.code === "42P01") { // PostgreSQL error code for undefined_table
-          console.log("Table 'user_subscriptions' does not exist yet. Using free tier.");
+          console.log("Table 'user_subscriptions' does not exist yet. Using basic tier with trial.");
           setSubscription(prev => ({
             ...prev,
-            tier: SUBSCRIPTION_TIERS.FREE,
+            tier: SUBSCRIPTION_TIERS.BASIC,
+            isTrial: true,
+            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+            isTrialActive: true,
             isLoading: false,
           }));
           return;
@@ -66,7 +75,10 @@ export function SubscriptionProvider({ children }) {
           console.error("Error fetching subscription:", error);
           setSubscription(prev => ({
             ...prev,
-            tier: SUBSCRIPTION_TIERS.FREE,
+            tier: SUBSCRIPTION_TIERS.BASIC,
+            isTrial: true,
+            trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+            isTrialActive: true,
             isLoading: false,
           }));
           return;
@@ -75,18 +87,30 @@ export function SubscriptionProvider({ children }) {
         if (data) {
           // Check if subscription is expired
           const isExpired = data.expires_at && new Date(data.expires_at) < new Date();
+          const isTrial = data.is_trial || false;
+          const trialEndsAt = data.trial_ends_at || null;
+          const isTrialExpired = trialEndsAt && new Date(trialEndsAt) < new Date();
           
           setSubscription({
-            tier: isExpired ? SUBSCRIPTION_TIERS.FREE : data.subscription_tier,
+            tier: data.subscription_tier,
             billingCycle: data.billing_cycle,
             expiresAt: data.expires_at,
             isActive: !isExpired && data.is_active,
+            isTrial,
+            trialEndsAt,
+            isTrialActive: isTrial && !isTrialExpired,
             isLoading: false,
           });
         } else {
+          // Create a new trial subscription for the user (will be saved on first checkout)
+          const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(); // 14 days trial
+          
           setSubscription(prev => ({
             ...prev,
-            tier: SUBSCRIPTION_TIERS.FREE,
+            tier: SUBSCRIPTION_TIERS.BASIC,
+            isTrial: true,
+            trialEndsAt,
+            isTrialActive: true,
             isLoading: false,
           }));
         }
@@ -94,7 +118,10 @@ export function SubscriptionProvider({ children }) {
         console.error("Error in subscription fetch:", err);
         setSubscription(prev => ({
           ...prev,
-          tier: SUBSCRIPTION_TIERS.FREE,
+          tier: SUBSCRIPTION_TIERS.BASIC,
+          isTrial: true,
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+          isTrialActive: true,
           isLoading: false,
         }));
       }
@@ -182,6 +209,9 @@ export function SubscriptionProvider({ children }) {
     hasAccess,
     getRequiredTierForFeature,
     isLoading: subscription.isLoading,
+    isTrial: subscription.isTrial,
+    isTrialActive: subscription.isTrialActive,
+    trialEndsAt: subscription.trialEndsAt,
   };
 
   return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
