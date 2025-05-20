@@ -18,6 +18,7 @@ import {
   X,
   LogOut,
   User,
+  DollarSign,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ export default function HomePage() {
             <span className="text-xl font-bold">Vestup</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            {/* Always show Calculator and Education links */}
+            {/* Always show Calculator, Education, and Pricing links */}
             <Link
               href="/calculator"
               className="text-sm font-medium hover:text-primary transition-colors"
@@ -91,6 +92,12 @@ export default function HomePage() {
               className="text-sm font-medium hover:text-primary transition-colors"
             >
               Education
+            </Link>
+            <Link
+              href="/pricing"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Pricing
             </Link>
 
             {/* Conditionally show Dashboard for logged in users, or Login/Signup for logged out users */}
@@ -145,7 +152,7 @@ export default function HomePage() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden px-4 py-4 space-y-4 border-t">
-            {/* Always show Calculator and Education links */}
+            {/* Always show Calculator, Education, and Pricing links */}
             <Link
               href="/calculator"
               className="block py-2 text-sm font-medium hover:text-primary"
@@ -159,6 +166,13 @@ export default function HomePage() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Education
+            </Link>
+            <Link
+              href="/pricing"
+              className="block py-2 text-sm font-medium hover:text-primary"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Pricing
             </Link>
 
             {/* Conditionally show Dashboard for logged in users, or Login/Signup for logged out users */}
@@ -235,7 +249,7 @@ export default function HomePage() {
                     className="transition-colors"
                     asChild
                   >
-                    <Link href="/education">Learn More</Link>
+                    <Link href="/pricing">View Plans</Link>
                   </Button>
                 </div>
 
@@ -305,7 +319,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-3 lg:gap-12">
+            <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-4 lg:gap-12">
               {featureCards.map((feature, index) => (
                 <Card
                   key={index}
@@ -340,8 +354,75 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* How It Works Section - New addition */}
+        {/* Subscription Tiers Section */}
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
+              <div className="space-y-2 max-w-[800px]">
+                <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                  Subscription Plans
+                </span>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">
+                  Choose a plan that works for you
+                </h2>
+                <p className="text-muted-foreground">
+                  From free basics to premium features, we have options for everyone
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {subscriptionTiers.map((tier, index) => (
+                <Card key={index} className={`flex flex-col ${tier.highlighted ? 'border-primary shadow-md' : ''}`}>
+                  {tier.highlighted && (
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                      <span className="inline-block bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
+                        Most Popular
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="text-2xl">{tier.name}</CardTitle>
+                    <div className="mt-2 flex items-baseline">
+                      <span className="text-3xl font-bold">${tier.price}</span>
+                      <span className="ml-1 text-gray-500">/month</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <ul className="space-y-2">
+                      {tier.features.map((feature, i) => (
+                        <li key={i} className="flex items-start">
+                          <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      className={`w-full ${tier.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
+                      variant={tier.highlighted ? 'default' : 'outline'} 
+                      asChild
+                    >
+                      <Link href="/pricing">
+                        {tier.buttonText}
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+            
+            <div className="text-center mt-8">
+              <Link href="/pricing" className="text-primary hover:underline font-medium">
+                View detailed plan comparison →
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="w-full py-12 md:py-24 lg:py-32">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
               <div className="space-y-2 max-w-[800px]">
@@ -584,6 +665,16 @@ export default function HomePage() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-transparent text-white border-white hover:bg-white/10 transition-colors"
+                  asChild
+                >
+                  <Link href="/pricing">
+                    View Pricing Plans
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -617,7 +708,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:col-span-3 lg:grid-cols-3">
+            <div className="grid grid-cols-3 gap-4 lg:col-span-3">
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Product</h3>
                 <ul className="space-y-1 text-sm">
@@ -639,10 +730,10 @@ export default function HomePage() {
                   </li>
                   <li>
                     <Link
-                      href="/scenario"
+                      href="/pricing"
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      Scenarios
+                      Pricing
                     </Link>
                   </li>
                 </ul>
@@ -801,6 +892,57 @@ const featureCards = [
     link: "/education",
     buttonText: "Start Learning",
   },
+  {
+    icon: <DollarSign className="h-6 w-6 text-primary" />,
+    title: "Pricing Plans",
+    description:
+      "Choose from our flexible pricing tiers to get the features that best fit your needs. From free basics to premium tools for serious optimization.",
+    link: "/pricing",
+    buttonText: "View Plans",
+  },
+];
+
+// Subscription tiers for homepage highlight section
+const subscriptionTiers = [
+  {
+    name: "Basic",
+    price: "9.99",
+    features: [
+      "Track equity grants",
+      "Basic vesting visualization",
+      "Simple equity calculator",
+      "Educational resources",
+      "Email support"
+    ],
+    buttonText: "Start with Basic",
+    highlighted: false
+  },
+  {
+    name: "Pro",
+    price: "19.99",
+    features: [
+      "Everything in Basic",
+      "Up to 5 scenario plans",
+      "Tax implications calculator",
+      "Multiple grant comparison",
+      "Decision support tools"
+    ],
+    buttonText: "Get Pro",
+    highlighted: true
+  },
+  {
+    name: "Premium",
+    price: "39.99",
+    features: [
+      "Everything in Pro",
+      "Unlimited scenario planning",
+      "Advanced tax optimization",
+      "Custom API access",
+      "Priority support"
+    ],
+    buttonText: "Go Premium",
+    highlighted: false
+  }
 ];
 
 // How it works steps

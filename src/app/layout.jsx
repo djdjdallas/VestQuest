@@ -4,7 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
-import { EducationLevelProvider } from "@/context/EducationContext"; // Add this
+import { EducationLevelProvider } from "@/context/EducationContext";
+import { SubscriptionProvider } from "@/context/SubscriptionContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,12 +19,12 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <EducationLevelProvider>
-            {" "}
-            {/* Add this */}
-            {children}
-            <Toaster />
-          </EducationLevelProvider>
+          <SubscriptionProvider>
+            <EducationLevelProvider>
+              {children}
+              <Toaster />
+            </EducationLevelProvider>
+          </SubscriptionProvider>
         </AuthProvider>
       </body>
     </html>
