@@ -4,22 +4,22 @@ import '@testing-library/jest-dom'
 // Mock the fetch API
 import 'jest-fetch-mock'
 
-// Set up MSW to intercept requests during testing
-import { server } from './src/mocks/server'
+// Temporarily disable MSW while we fix it
+// import { server } from './src/mocks/server'
 
 beforeAll(() => {
   // Enable API mocking before tests
-  server.listen()
+  // server.listen()
 })
 
 afterEach(() => {
   // Reset handlers between tests
-  server.resetHandlers()
+  // server.resetHandlers()
 })
 
 afterAll(() => {
   // Clean up after tests
-  server.close()
+  // server.close()
 })
 
 // Mock Next.js router

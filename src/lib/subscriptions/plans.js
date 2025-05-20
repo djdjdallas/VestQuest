@@ -1,0 +1,96 @@
+export const SUBSCRIPTION_TIERS = {
+  FREE: "free",
+  BASIC: "basic",
+  PRO: "pro",
+  PREMIUM: "premium",
+};
+
+export const SUBSCRIPTION_PRICES = {
+  [SUBSCRIPTION_TIERS.FREE]: {
+    monthly: 0,
+    yearly: 0,
+  },
+  [SUBSCRIPTION_TIERS.BASIC]: {
+    monthly: 9.99,
+    yearly: 99,
+  },
+  [SUBSCRIPTION_TIERS.PRO]: {
+    monthly: 19.99,
+    yearly: 199,
+  },
+  [SUBSCRIPTION_TIERS.PREMIUM]: {
+    monthly: 39.99,
+    yearly: 399,
+  },
+};
+
+export const FEATURES = {
+  EQUITY_TRACKING: "equity_tracking",
+  BASIC_VESTING: "basic_vesting",
+  BASIC_TAX_CALCULATOR: "basic_tax_calculator",
+  EDUCATIONAL_RESOURCES: "educational_resources",
+  ADVANCED_TAX_TOOLS: "advanced_tax_tools",
+  BASIC_SCENARIOS: "basic_scenarios",
+  MULTI_GRANT_MANAGEMENT: "multi_grant_management",
+  DECISION_SUPPORT: "decision_support",
+  COMPREHENSIVE_SCENARIOS: "comprehensive_scenarios",
+  ADVANCED_TAX_OPTIMIZATION: "advanced_tax_optimization",
+  PERSONALIZED_RECOMMENDATIONS: "personalized_recommendations",
+  API_ACCESS: "api_access",
+  CHAT_SUPPORT: "chat_support",
+  PRIORITY_SUPPORT: "priority_support",
+};
+
+export const FEATURE_NAMES = {
+  [FEATURES.EQUITY_TRACKING]: "Real-time equity grant tracking",
+  [FEATURES.BASIC_VESTING]: "Basic vesting schedule visualization",
+  [FEATURES.BASIC_TAX_CALCULATOR]: "Essential tax calculators",
+  [FEATURES.EDUCATIONAL_RESOURCES]: "Standard educational resources",
+  [FEATURES.ADVANCED_TAX_TOOLS]: "Advanced tax optimization tools",
+  [FEATURES.BASIC_SCENARIOS]: "Basic scenario planning",
+  [FEATURES.MULTI_GRANT_MANAGEMENT]: "Multiple grant management",
+  [FEATURES.DECISION_SUPPORT]: "Decision support tools",
+  [FEATURES.COMPREHENSIVE_SCENARIOS]: "Comprehensive scenario modeling",
+  [FEATURES.ADVANCED_TAX_OPTIMIZATION]: "Advanced tax optimization",
+  [FEATURES.PERSONALIZED_RECOMMENDATIONS]: "Personalized recommendations",
+  [FEATURES.API_ACCESS]: "API access for personal finance integrations",
+  [FEATURES.CHAT_SUPPORT]: "Chat and email support",
+  [FEATURES.PRIORITY_SUPPORT]: "Priority support",
+};
+
+export const TIER_FEATURES = {
+  [SUBSCRIPTION_TIERS.FREE]: [FEATURES.EQUITY_TRACKING, FEATURES.BASIC_VESTING],
+  [SUBSCRIPTION_TIERS.BASIC]: [
+    FEATURES.EQUITY_TRACKING,
+    FEATURES.BASIC_VESTING,
+    FEATURES.BASIC_TAX_CALCULATOR,
+    FEATURES.EDUCATIONAL_RESOURCES,
+  ],
+  [SUBSCRIPTION_TIERS.PRO]: [
+    FEATURES.EQUITY_TRACKING,
+    FEATURES.BASIC_VESTING,
+    FEATURES.BASIC_TAX_CALCULATOR,
+    FEATURES.EDUCATIONAL_RESOURCES,
+    FEATURES.ADVANCED_TAX_TOOLS,
+    FEATURES.BASIC_SCENARIOS,
+    FEATURES.MULTI_GRANT_MANAGEMENT,
+    FEATURES.DECISION_SUPPORT,
+    FEATURES.CHAT_SUPPORT,
+  ],
+  [SUBSCRIPTION_TIERS.PREMIUM]: [
+    FEATURES.EQUITY_TRACKING,
+    FEATURES.BASIC_VESTING,
+    FEATURES.BASIC_TAX_CALCULATOR,
+    FEATURES.EDUCATIONAL_RESOURCES,
+    FEATURES.ADVANCED_TAX_TOOLS,
+    FEATURES.BASIC_SCENARIOS,
+    FEATURES.MULTI_GRANT_MANAGEMENT,
+    FEATURES.DECISION_SUPPORT,
+    FEATURES.CHAT_SUPPORT,
+    FEATURES.COMPREHENSIVE_SCENARIOS,
+    FEATURES.ADVANCED_TAX_OPTIMIZATION,
+    FEATURES.PERSONALIZED_RECOMMENDATIONS,
+    FEATURES.API_ACCESS,
+    FEATURES.PRIORITY_SUPPORT,
+  ],
+};
