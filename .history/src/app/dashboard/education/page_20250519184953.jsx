@@ -168,23 +168,23 @@ export default function Education() {
 
           if (progressData && progressData.length > 0) {
             // Update state with fetched data
-            setCompletedTopics(progressData[0].completed_content || []);
-            setBookmarkedTopics(progressData[0].bookmarked_content || []);
-            setLearningProgress(progressData[0].learning_paths || {});
+            setCompletedTopics(progressData[0].completed_topics || []);
+            setBookmarkedTopics(progressData[0].bookmarked_topics || []);
+            setLearningProgress(progressData[0].learning_progress || {});
             setQuizResults(progressData[0].quiz_results || {});
 
             // Also update localStorage
             localStorage.setItem(
               "completedTopics",
-              JSON.stringify(progressData[0].completed_content || [])
+              JSON.stringify(progressData[0].completed_topics || [])
             );
             localStorage.setItem(
               "bookmarkedTopics",
-              JSON.stringify(progressData[0].bookmarked_content || [])
+              JSON.stringify(progressData[0].bookmarked_topics || [])
             );
             localStorage.setItem(
               "learningProgress",
-              JSON.stringify(progressData[0].learning_paths || {})
+              JSON.stringify(progressData[0].learning_progress || {})
             );
             localStorage.setItem(
               "quizResults",
@@ -203,9 +203,9 @@ export default function Education() {
   // Save user progress when it changes
   const saveUserProgress = useCallback(async () => {
     const progress = {
-      completed_content: completedTopics,
-      bookmarked_content: bookmarkedTopics,
-      learning_paths: learningProgress,
+      completed_topics: completedTopics,
+      bookmarked_topics: bookmarkedTopics,
+      learning_progress: learningProgress,
       quiz_results: quizResults,
     };
 
@@ -304,12 +304,12 @@ export default function Education() {
             id: item.id,
             title: item.title,
             content: item.content,
-            intermediate_explanation: item.interactive_data?.intermediate_explanation,
-            advanced_details: item.interactive_data?.advanced_details,
-            example: item.examples && item.examples.length > 0 ? item.examples[0] : null,
+            intermediate_explanation: item.intermediate_explanation,
+            advanced_details: item.advanced_details,
+            example: item.example,
             tags: Array.isArray(item.tags) ? item.tags : [],
-            related_terms: Array.isArray(item.related_content)
-              ? item.related_content
+            related_terms: Array.isArray(item.related_terms)
+              ? item.related_terms
               : [],
           })) || [];
 
@@ -361,7 +361,7 @@ export default function Education() {
             title: path.title,
             description: path.description,
             level: path.level,
-            modules: typeof path.modules === 'object' ? path.modules : [],
+            modules: Array.isArray(path.modules) ? path.modules : [],
             recommended_for: Array.isArray(path.recommended_for)
               ? path.recommended_for
               : [],

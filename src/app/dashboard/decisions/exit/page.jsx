@@ -1519,6 +1519,54 @@ export default function ExitPlanningGuidePage() {
                   />
                 </div>
                 
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label>Federal Tax Rate (%)</Label>
+                    <span className="text-sm font-medium">{advancedSettings.federalTaxRate}%</span>
+                  </div>
+                  <Slider 
+                    value={[advancedSettings.federalTaxRate]} 
+                    min={10} 
+                    max={40} 
+                    step={1}
+                    onValueChange={(values) => 
+                      setAdvancedSettings({
+                        ...advancedSettings,
+                        federalTaxRate: values[0],
+                      })
+                    }
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>10%</span>
+                    <span>25%</span>
+                    <span>40%</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label>State Tax Rate (%)</Label>
+                    <span className="text-sm font-medium">{advancedSettings.stateTaxRate}%</span>
+                  </div>
+                  <Slider 
+                    value={[advancedSettings.stateTaxRate]} 
+                    min={0} 
+                    max={15} 
+                    step={0.5}
+                    onValueChange={(values) => 
+                      setAdvancedSettings({
+                        ...advancedSettings,
+                        stateTaxRate: values[0],
+                      })
+                    }
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0%</span>
+                    <span>7.5%</span>
+                    <span>15%</span>
+                  </div>
+                </div>
+                
                 <div className="flex items-center space-x-2 pt-2">
                   <Checkbox
                     id="include-amt"
@@ -1532,6 +1580,54 @@ export default function ExitPlanningGuidePage() {
                   />
                   <Label htmlFor="include-amt" className="text-sm font-normal">
                     Include Alternative Minimum Tax (AMT) in calculations
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="include-niit"
+                    checked={advancedSettings.includeNIIT}
+                    onCheckedChange={(checked) =>
+                      setAdvancedSettings({
+                        ...advancedSettings,
+                        includeNIIT: !!checked,
+                      })
+                    }
+                  />
+                  <Label htmlFor="include-niit" className="text-sm font-normal">
+                    Include Net Investment Income Tax (3.8%)
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="use-enhanced"
+                    checked={advancedSettings.useEnhancedCalculations}
+                    onCheckedChange={(checked) =>
+                      setAdvancedSettings({
+                        ...advancedSettings,
+                        useEnhancedCalculations: !!checked,
+                      })
+                    }
+                  />
+                  <Label htmlFor="use-enhanced" className="text-sm font-normal">
+                    Use exit-specific enhanced tax calculations
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="multi-state"
+                    checked={advancedSettings.isMultiState}
+                    onCheckedChange={(checked) =>
+                      setAdvancedSettings({
+                        ...advancedSettings,
+                        isMultiState: !!checked,
+                      })
+                    }
+                  />
+                  <Label htmlFor="multi-state" className="text-sm font-normal">
+                    Enable multi-state tax allocation
                   </Label>
                 </div>
                 
@@ -1552,6 +1648,109 @@ export default function ExitPlanningGuidePage() {
                       }
                       placeholder="Enter AMT credits"
                     />
+                  </div>
+                )}
+                
+                {/* Exit Type-Specific Settings */}
+                {exitScenario.type === "Acquisition" && (
+                  <div className="space-y-4 mt-4 p-3 bg-muted/20 rounded-md">
+                    <h4 className="font-medium">Acquisition-Specific Settings</h4>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label>Cash Percentage</Label>
+                        <span className="text-sm font-medium">{advancedSettings.cashPercentage}%</span>
+                      </div>
+                      <Slider 
+                        value={[advancedSettings.cashPercentage]} 
+                        min={0} 
+                        max={100} 
+                        step={5}
+                        onValueChange={(values) => 
+                          setAdvancedSettings({
+                            ...advancedSettings,
+                            cashPercentage: values[0],
+                          })
+                        }
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>0% (All Stock)</span>
+                        <span>50%</span>
+                        <span>100% (All Cash)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox
+                        id="has-earnout"
+                        checked={advancedSettings.hasEarnout}
+                        onCheckedChange={(checked) =>
+                          setAdvancedSettings({
+                            ...advancedSettings,
+                            hasEarnout: !!checked,
+                          })
+                        }
+                      />
+                      <Label htmlFor="has-earnout" className="text-sm font-normal">
+                        Include earnout component
+                      </Label>
+                    </div>
+                    
+                    {advancedSettings.hasEarnout && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <Label>Earnout Percentage</Label>
+                          <span className="text-sm font-medium">{advancedSettings.earnoutPercentage}%</span>
+                        </div>
+                        <Slider 
+                          value={[advancedSettings.earnoutPercentage]} 
+                          min={0} 
+                          max={50} 
+                          step={5}
+                          onValueChange={(values) => 
+                            setAdvancedSettings({
+                              ...advancedSettings,
+                              earnoutPercentage: values[0],
+                            })
+                          }
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>0%</span>
+                          <span>25%</span>
+                          <span>50%</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {exitScenario.type === "Secondary" && (
+                  <div className="space-y-4 mt-4 p-3 bg-muted/20 rounded-md">
+                    <h4 className="font-medium">Secondary Sale Settings</h4>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label>Secondary Market Discount</Label>
+                        <span className="text-sm font-medium">{advancedSettings.secondaryDiscount}%</span>
+                      </div>
+                      <Slider 
+                        value={[advancedSettings.secondaryDiscount]} 
+                        min={0} 
+                        max={50} 
+                        step={5}
+                        onValueChange={(values) => 
+                          setAdvancedSettings({
+                            ...advancedSettings,
+                            secondaryDiscount: values[0],
+                          })
+                        }
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>0% (No Discount)</span>
+                        <span>25%</span>
+                        <span>50% (Deep Discount)</span>
+                      </div>
+                    </div>
                   </div>
                 )}
                 

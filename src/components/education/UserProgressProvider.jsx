@@ -76,19 +76,24 @@ export function UserProgressProvider({ children }) {
           }
           
           if (data) {
+            // Make sure to parse JSONB fields if they're returned as strings
+            const viewedContentData = typeof data.viewed_content === 'string' ? JSON.parse(data.viewed_content) : (data.viewed_content || {});
+            const quizResultsData = typeof data.quiz_results === 'string' ? JSON.parse(data.quiz_results) : (data.quiz_results || {});
+            const learningPathsData = typeof data.learning_paths === 'string' ? JSON.parse(data.learning_paths) : (data.learning_paths || {});
+            
             // Merge with local data, prioritizing server data
-            setViewedContent(data.viewed_content || {});
+            setViewedContent(viewedContentData);
             setCompletedContent(data.completed_content || []);
             setBookmarkedContent(data.bookmarked_content || []);
-            setQuizResults(data.quiz_results || {});
-            setLearningPaths(data.learning_paths || {});
+            setQuizResults(quizResultsData);
+            setLearningPaths(learningPathsData);
             
             // Update local storage with server data
-            localStorage.setItem('viewedContent', JSON.stringify(data.viewed_content || {}));
+            localStorage.setItem('viewedContent', JSON.stringify(viewedContentData));
             localStorage.setItem('completedContent', JSON.stringify(data.completed_content || []));
             localStorage.setItem('bookmarkedContent', JSON.stringify(data.bookmarked_content || []));
-            localStorage.setItem('quizResults', JSON.stringify(data.quiz_results || {}));
-            localStorage.setItem('learningPaths', JSON.stringify(data.learning_paths || {}));
+            localStorage.setItem('quizResults', JSON.stringify(quizResultsData));
+            localStorage.setItem('learningPaths', JSON.stringify(learningPathsData));
             localStorage.setItem('progressLastSynced', new Date().toISOString());
             setLastSynced(new Date());
           }
