@@ -227,8 +227,8 @@ export default function HomePage() {
                     </span>
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    From vesting schedules to exit scenarios, Veston gives you
-                    the tools to maximize your compensation and confidently
+                    From vesting schedules to exit scenarios, Veston gives both startup and
+                    mid-level professionals the tools to maximize compensation and confidently
                     navigate every equity milestone.
                   </p>
                 </div>
@@ -263,13 +263,19 @@ export default function HomePage() {
                       Stripe
                     </div>
                     <div className="bg-gray-100 px-3 py-1 rounded text-sm font-medium">
-                      Figma
+                      Google
                     </div>
                     <div className="bg-gray-100 px-3 py-1 rounded text-sm font-medium">
                       Notion
                     </div>
                     <div className="bg-gray-100 px-3 py-1 rounded text-sm font-medium">
+                      Microsoft
+                    </div>
+                    <div className="bg-gray-100 px-3 py-1 rounded text-sm font-medium">
                       Airbnb
+                    </div>
+                    <div className="bg-gray-100 px-3 py-1 rounded text-sm font-medium">
+                      Amazon
                     </div>
                   </div>
                 </div>
@@ -313,7 +319,7 @@ export default function HomePage() {
                   Everything you need to optimize your equity
                 </h2>
                 <p className="text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Veston helps startup employees understand, track, and optimize
+                  Veston helps both startup and established company professionals understand, track, and optimize
                   their equity compensation.
                 </p>
               </div>
@@ -560,10 +566,10 @@ export default function HomePage() {
                   Testimonials
                 </span>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-                  Trusted by startup employees
+                  Trusted by professionals at all levels
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Hear from people who have made better decisions about their
+                  Hear from people at startups and established companies who have made better decisions about their
                   equity with Veston.
                 </p>
               </div>
@@ -600,7 +606,7 @@ export default function HomePage() {
                     <div>
                       <CardTitle className="text-lg">Sarah Johnson</CardTitle>
                       <CardDescription>
-                        Product Manager at GrowthCo
+                        Product Manager at TechCorp
                       </CardDescription>
                     </div>
                   </div>
@@ -608,9 +614,9 @@ export default function HomePage() {
                 <CardContent>
                   <p className="text-muted-foreground italic">
                     "The scenario modeling feature is incredible. I was able to
-                    see how different exit valuations would affect my take-home
-                    amount after taxes. This tool is essential for anyone with
-                    startup equity."
+                    see how different growth trajectories would affect my RSUs and
+                    options. This tool is essential for anyone with equity compensation,
+                    whether at a startup or established company."
                   </p>
                 </CardContent>
               </Card>
@@ -649,8 +655,8 @@ export default function HomePage() {
                   Ready to understand your equity?
                 </h2>
                 <p className="max-w-[600px] md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Join thousands of startup employees making smarter decisions
-                  about their compensation.
+                  Join thousands of professionals at startups and established companies making smarter decisions
+                  about their equity compensation.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
