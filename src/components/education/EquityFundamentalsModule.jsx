@@ -375,7 +375,48 @@ export function EquityFundamentalsModule() {
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span>Course Progress</span>
-          <span>{Math.round(progress)}%</span>
+          <div className="flex items-center gap-2">
+            <span>{Math.round(progress)}%</span>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              className="bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300"
+              onClick={() => {
+                // Reset all progress for this module
+                completedContent.forEach(contentId => {
+                  if (contentId.startsWith('equity_fundamentals_')) {
+                    markContentCompleted(contentId, false);
+                  }
+                });
+                // Reset quiz results
+                lessons.forEach(lesson => {
+                  const quizId = `equity_fundamentals_${lesson.id}_quiz`;
+                  saveQuizResult(quizId, {
+                    answers: {},
+                    score: 0,
+                    totalQuestions: lesson.quiz.length,
+                    completedAt: new Date().toISOString()
+                  });
+                });
+                // Reset learning path progress
+                updateLearningPathProgress("equity_fundamentals", {
+                  completed: false,
+                  completedAt: null
+                });
+                // Reset to first lesson
+                setCurrentLessonIndex(0);
+                // Reset lesson completion state
+                setLessonCompletion({});
+                // Hide certificate if shown
+                setShowCertificate(false);
+                
+                // Alert user that the course has been reset
+                alert("Course progress has been reset. You can now start from the beginning.");
+              }}
+            >
+              Restart Course
+            </Button>
+          </div>
         </div>
         <Progress value={progress} className="h-2" />
       </div>

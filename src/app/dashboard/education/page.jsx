@@ -715,15 +715,66 @@ export default function Education() {
                   ))}
                   
                   {/* Add link to Equity Fundamentals Course */}
-                  <EducationCard
-                    title="Equity Fundamentals Course"
-                    content="A comprehensive, beginner-friendly course covering all the essentials of equity compensation."
-                    example="Learn about stock options, RSUs, vesting schedules, taxation, and liquidity events."
-                    estimatedTime="45-60 min"
-                    tags={["beginner", "interactive", "comprehensive"]}
-                    isCompleted={completedContent.includes("equity_fundamentals_module")}
-                    learnMoreUrl="/dashboard/education/equity-fundamentals"
-                  />
+                  <div className="relative">
+                    <EducationCard
+                      title="Equity Fundamentals Course"
+                      content="A comprehensive, beginner-friendly course covering all the essentials of equity compensation."
+                      example="Learn about stock options, RSUs, vesting schedules, taxation, and liquidity events."
+                      estimatedTime="45-60 min"
+                      tags={["beginner", "interactive", "comprehensive"]}
+                      isCompleted={completedTopics.includes("equity_fundamentals_module")}
+                      learnMoreUrl="/dashboard/education/equity-fundamentals"
+                      actions={
+                        <div className="flex justify-between mt-2">
+                          {completedTopics.includes("equity_fundamentals_module") && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300"
+                              onClick={() => {
+                                // Reset all progress for this module
+                                const updatedTopics = completedTopics.filter(
+                                  id => !id.startsWith('equity_fundamentals_')
+                                );
+                                setCompletedTopics(updatedTopics);
+                                
+                                // Create or update learning path progress
+                                const updatedProgress = {
+                                  ...learningProgress,
+                                  equity_fundamentals: {
+                                    completed: false,
+                                    completedAt: null,
+                                    reset: true,
+                                    resetAt: new Date().toISOString()
+                                  }
+                                };
+                                setLearningProgress(updatedProgress);
+                                
+                                // Alert that course has been reset
+                                alert("Course progress has been reset. You can now start from the beginning.");
+                                
+                                // Navigate to the course
+                                window.location.href = "/dashboard/education/equity-fundamentals";
+                              }}
+                            >
+                              Restart Course
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleTopicBookmarked("equity_fundamentals_module")}
+                          >
+                            {bookmarkedTopics.includes("equity_fundamentals_module") ? (
+                              <BookMarked className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Bookmark className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
