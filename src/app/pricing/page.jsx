@@ -275,7 +275,7 @@ export default function PricingPage() {
                 How does the 14-day free trial work?
               </h3>
               <p className="mt-2 text-gray-500">
-                You can try VestUp free for 14 days with full access to all
+                You can try Veston free for 14 days with full access to all
                 features in your selected plan. No credit card required to
                 start. You'll only be charged after your trial ends if you
                 choose to continue.
@@ -341,7 +341,7 @@ export default function PricingPage() {
         {/* Testimonial Section */}
         <div className="mt-24 max-w-3xl mx-auto">
           <blockquote className="text-xl italic text-gray-600 text-center">
-            "VestUp helped me optimize my equity decisions during a recent
+            "Veston helped me optimize my equity decisions during a recent
             acquisition, saving me over $45,000 in taxes. The Pro plan paid for
             itself within minutes."
             <footer className="mt-4 text-sm font-medium text-gray-700">

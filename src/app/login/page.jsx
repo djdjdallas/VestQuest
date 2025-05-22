@@ -89,7 +89,7 @@ export default function LoginPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2">
             <LineChart className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Vestup</h1>
+            <h1 className="text-3xl font-bold">Veston</h1>
           </div>
           <p className="mt-2 text-lg">
             Make informed decisions about your equity
@@ -99,7 +99,7 @@ export default function LoginPage() {
         {/* Middle content */}
         <div className="space-y-16 relative z-10">
           <div className="space-y-8">
-            <h2 className="text-2xl font-semibold">Why join Vestup?</h2>
+            <h2 className="text-2xl font-semibold">Why join Veston?</h2>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3">
@@ -143,7 +143,7 @@ export default function LoginPage() {
 
           <div className="p-4 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm">
             <blockquote className="text-sm italic">
-              "Vestup helped me understand the true value of my options package
+              "Veston helped me understand the true value of my options package
               when negotiating my job offer. I was able to make an informed
               decision and negotiate better terms."
             </blockquote>
@@ -163,7 +163,7 @@ export default function LoginPage() {
 
         {/* Bottom footer */}
         <div className="flex items-center justify-between text-sm relative z-10">
-          <span>&copy; {new Date().getFullYear()} Vestup, Inc.</span>
+          <span>&copy; {new Date().getFullYear()} Veston, Inc.</span>
           <div className="flex gap-4">
             <a href="#" className="hover:underline">
               Terms
@@ -184,7 +184,7 @@ export default function LoginPage() {
           {/* Show logo on mobile only */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <LineChart className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Vestup</h1>
+            <h1 className="text-2xl font-bold">Veston</h1>
           </div>
 
           <Card className="w-full max-w-md shadow-lg border-t-4 border-t-primary">
@@ -194,7 +194,7 @@ export default function LoginPage() {
                   <LineChart className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-2xl">Vestup</CardTitle>
+                  <CardTitle className="text-2xl">Veston</CardTitle>
                   <CardDescription className="text-xs">
                     Equity Modeling Platform
                   </CardDescription>
@@ -282,7 +282,7 @@ export default function LoginPage() {
               </div>
 
               <div className="text-xs text-center text-muted-foreground">
-                By continuing, you agree to Vestup's Terms of Service and
+                By continuing, you agree to Veston's Terms of Service and
                 Privacy Policy.
               </div>
             </CardFooter>
@@ -320,7 +320,7 @@ export default function LoginPage() {
 
           {/* Mobile footer */}
           <div className="mt-12 text-xs text-center text-muted-foreground lg:hidden">
-            &copy; {new Date().getFullYear()} Vestup, Inc. All rights reserved.
+            &copy; {new Date().getFullYear()} Veston, Inc. All rights reserved.
           </div>
         </div>
       </div>
