@@ -142,10 +142,10 @@ export function Lesson1WhatIsEquity() {
           Real-world Example
         </h3>
         <div className="bg-muted/50 p-4 rounded-md">
-          <h4 className="font-medium mb-2 flex items-center">
+          <div className="font-medium mb-2 flex items-center">
             <Building className="h-4 w-4 mr-2" />
             Join StartupX: A Tale of Two Offers
-          </h4>
+          </div>
           <div className="space-y-4">
             <p>
               Imagine you receive two job offers from StartupX, a promising tech company:
@@ -266,7 +266,7 @@ export function Lesson1WhatIsEquity() {
             </div>
             
             <div className="p-4 bg-primary/10 rounded-md mt-4">
-              <h4 className="font-medium mb-2">Your Compensation Breakdown</h4>
+              <div className="font-medium mb-2">Your Compensation Breakdown</div>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Annual Cash Salary:</span>

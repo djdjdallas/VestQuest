@@ -1,0 +1,519 @@
+-- 004_create_learning_modules.sql
+-- Create tables for structured learning modules system
+
+-- Table to store course/module metadata
+CREATE TABLE IF NOT EXISTS public.course_modules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    estimated_time TEXT DEFAULT '45-60 minutes',
+    level TEXT NOT NULL CHECK (level IN ('beginner', 'intermediate', 'advanced')),
+    image_url TEXT,
+    tags TEXT[] DEFAULT '{}',
+    prerequisites TEXT[] DEFAULT '{}',
+    completion_requirements JSONB DEFAULT '{"min_lessons_completed": 1, "min_quiz_score": 70}',
+    restart_enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc', now()),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc', now()),
+    published BOOLEAN DEFAULT FALSE,
+    version INTEGER DEFAULT 1,
+    last_updated_by UUID REFERENCES auth.users(id)
+);
+
+-- Table to store individual lessons within modules
+CREATE TABLE IF NOT EXISTS public.course_lessons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    module_id UUID NOT NULL REFERENCES public.course_modules(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    content TEXT,
+    component_name TEXT, -- For connecting to React components if needed
+    order_index INTEGER NOT NULL, -- For ordering lessons within a module
+    estimated_time TEXT DEFAULT '8-10 minutes',
+    key_terms TEXT[] DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc', now()),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc', now())
+);
+
+-- Table to store quiz questions for each lesson
+CREATE TABLE IF NOT EXISTS public.course_quiz_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    lesson_id UUID NOT NULL REFERENCES public.course_lessons(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    options JSONB NOT NULL,
+    correct_answer TEXT NOT NULL,
+    explanation TEXT NOT NULL,
+    order_index INTEGER NOT NULL, -- For ordering questions within a lesson
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc', now()),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT timezone('utc', now())
+);
+
+-- Create indexes for faster queries
+CREATE INDEX idx_course_lessons_module_id ON public.course_lessons(module_id);
+CREATE INDEX idx_course_quiz_questions_lesson_id ON public.course_quiz_questions(lesson_id);
+CREATE INDEX idx_course_modules_level ON public.course_modules(level);
+CREATE INDEX idx_course_modules_published ON public.course_modules(published);
+
+-- Add triggers for updated_at
+CREATE TRIGGER handle_course_modules_updated_at BEFORE UPDATE ON public.course_modules 
+FOR EACH ROW EXECUTE FUNCTION handle_updated_at();
+
+CREATE TRIGGER handle_course_lessons_updated_at BEFORE UPDATE ON public.course_lessons 
+FOR EACH ROW EXECUTE FUNCTION handle_updated_at();
+
+CREATE TRIGGER handle_course_quiz_questions_updated_at BEFORE UPDATE ON public.course_quiz_questions 
+FOR EACH ROW EXECUTE FUNCTION handle_updated_at();
+
+-- Enable row-level security
+ALTER TABLE public.course_modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_quiz_questions ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for access control
+-- Everyone can view published modules
+CREATE POLICY "Anyone can view published course modules" 
+ON public.course_modules FOR SELECT 
+TO public
+USING (published = TRUE);
+
+-- Everyone can view lessons of published modules
+CREATE POLICY "Anyone can view lessons of published modules" 
+ON public.course_lessons FOR SELECT 
+TO public
+USING (
+    EXISTS (
+        SELECT 1 FROM public.course_modules 
+        WHERE course_modules.id = course_lessons.module_id 
+        AND course_modules.published = TRUE
+    )
+);
+
+-- Everyone can view quiz questions of published modules
+CREATE POLICY "Anyone can view quiz questions of published modules" 
+ON public.course_quiz_questions FOR SELECT 
+TO public
+USING (
+    EXISTS (
+        SELECT 1 FROM public.course_lessons 
+        JOIN public.course_modules ON course_modules.id = course_lessons.module_id
+        WHERE course_lessons.id = course_quiz_questions.lesson_id 
+        AND course_modules.published = TRUE
+    )
+);
+
+-- Admins can manage all content
+CREATE POLICY "Admins can manage course modules"
+ON public.course_modules FOR ALL
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM administrators
+        WHERE administrators.user_id = auth.uid()
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM administrators
+        WHERE administrators.user_id = auth.uid()
+    )
+);
+
+CREATE POLICY "Admins can manage course lessons"
+ON public.course_lessons FOR ALL
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM administrators
+        WHERE administrators.user_id = auth.uid()
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM administrators
+        WHERE administrators.user_id = auth.uid()
+    )
+);
+
+CREATE POLICY "Admins can manage course quiz questions"
+ON public.course_quiz_questions FOR ALL
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM administrators
+        WHERE administrators.user_id = auth.uid()
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM administrators
+        WHERE administrators.user_id = auth.uid()
+    )
+);
+
+-- Grant permissions
+GRANT ALL ON public.course_modules TO service_role;
+GRANT ALL ON public.course_lessons TO service_role;
+GRANT ALL ON public.course_quiz_questions TO service_role;
+
+GRANT SELECT ON public.course_modules TO anon, authenticated;
+GRANT SELECT ON public.course_lessons TO anon, authenticated;
+GRANT SELECT ON public.course_quiz_questions TO anon, authenticated;
+
+-- Insert the equity fundamentals module data
+INSERT INTO public.course_modules (
+    title,
+    description,
+    estimated_time,
+    level,
+    tags,
+    completion_requirements,
+    published,
+    version
+) VALUES (
+    'Equity Fundamentals',
+    'A beginner-friendly course on equity compensation basics',
+    '45-60 minutes',
+    'beginner',
+    ARRAY['equity', 'compensation', 'beginner', 'comprehensive'],
+    '{"min_lessons_completed": 6, "min_quiz_score": 70}',
+    TRUE,
+    1
+) RETURNING id;
+
+-- Store the returned ID to use for lessons
+DO $$
+DECLARE
+    module_id UUID;
+BEGIN
+    -- Get the ID of the equity fundamentals module
+    SELECT id INTO module_id FROM public.course_modules WHERE title = 'Equity Fundamentals' LIMIT 1;
+
+    -- Insert lessons
+    INSERT INTO public.course_lessons (
+        module_id,
+        title,
+        description,
+        component_name,
+        order_index,
+        estimated_time,
+        key_terms
+    ) VALUES
+    (
+        module_id,
+        'What is Equity Compensation?',
+        'Learn the fundamentals of equity compensation and why companies offer it.',
+        'Lesson1WhatIsEquity',
+        1,
+        '8-10 min',
+        ARRAY['equity', 'compensation', 'ownership', 'stakeholder']
+    ),
+    (
+        module_id,
+        'Stock Options vs RSUs vs Restricted Stock',
+        'Compare different types of equity grants and their characteristics.',
+        'Lesson2EquityTypes',
+        2,
+        '8-10 min',
+        ARRAY['stock options', 'ISO', 'NSO', 'RSU', 'restricted stock']
+    ),
+    (
+        module_id,
+        'Understanding Vesting Schedules',
+        'Learn how vesting works and common vesting schedule patterns.',
+        'Lesson3VestingSchedules',
+        3,
+        '8-10 min',
+        ARRAY['vesting', 'cliff', 'acceleration', 'milestone-based vesting']
+    ),
+    (
+        module_id,
+        'Strike Price and Fair Market Value',
+        'Understand how stock option pricing works and what affects equity value.',
+        'Lesson4StrikeAndFMV',
+        4,
+        '8-10 min',
+        ARRAY['strike price', 'fair market value', '409A valuation', 'spread']
+    ),
+    (
+        module_id,
+        'Basic Tax Implications',
+        'Learn the fundamental tax considerations for different equity types.',
+        'Lesson5TaxImplications',
+        5,
+        '8-10 min',
+        ARRAY['ordinary income', 'capital gains', 'AMT', '83(b) election']
+    ),
+    (
+        module_id,
+        'When Companies Go Public or Get Acquired',
+        'Understand what happens to your equity during liquidity events.',
+        'Lesson6ExitsAndLiquidity',
+        6,
+        '8-10 min',
+        ARRAY['IPO', 'acquisition', 'liquidity event', 'lockup period', 'secondary sale']
+    );
+
+    -- Insert quiz questions
+    -- Lesson 1 quiz questions
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What is the primary purpose of equity compensation?', 
+        '[{"id": "a", "text": "To avoid paying market-rate salaries"}, 
+          {"id": "b", "text": "To align employee and company interests"}, 
+          {"id": "c", "text": "To avoid paying taxes"}, 
+          {"id": "d", "text": "To reduce company expenses"}]',
+        'b',
+        'Equity compensation is primarily designed to align employee interests with company success by making employees part-owners in the business.',
+        1
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'What is Equity Compensation?';
+
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'When do employees typically realize the full value of their equity compensation?', 
+        '[{"id": "a", "text": "Immediately upon receiving the grant"}, 
+          {"id": "b", "text": "At the company''s IPO or acquisition"}, 
+          {"id": "c", "text": "After their first year of employment"}, 
+          {"id": "d", "text": "At the end of each fiscal year"}]',
+        'b',
+        'The full value of equity is typically realized during a liquidity event such as an IPO (Initial Public Offering) or when the company is acquired.',
+        2
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'What is Equity Compensation?';
+
+    -- Lesson 2 quiz questions
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What is the main difference between stock options and RSUs?', 
+        '[{"id": "a", "text": "Stock options require purchase, while RSUs are given as shares"}, 
+          {"id": "b", "text": "RSUs are only for executives, stock options are for everyone else"}, 
+          {"id": "c", "text": "Stock options are more valuable than RSUs"}, 
+          {"id": "d", "text": "Stock options don''t have vesting periods, but RSUs do"}]',
+        'a',
+        'With stock options, you must exercise (purchase) shares at the strike price, while RSUs convert directly to shares upon vesting without requiring you to pay for them.',
+        1
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Stock Options vs RSUs vs Restricted Stock';
+
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'Which type of equity is typically granted at later-stage private companies or public companies?', 
+        '[{"id": "a", "text": "Incentive Stock Options (ISOs)"}, 
+          {"id": "b", "text": "Non-qualified Stock Options (NSOs)"}, 
+          {"id": "c", "text": "Restricted Stock Units (RSUs)"}, 
+          {"id": "d", "text": "Restricted Stock Awards"}]',
+        'c',
+        'RSUs are typically granted at later-stage private companies or public companies because they have definite value once vested, regardless of stock price fluctuations.',
+        2
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Stock Options vs RSUs vs Restricted Stock';
+
+    -- Lesson 3 quiz questions
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What is a ''cliff'' in a vesting schedule?', 
+        '[{"id": "a", "text": "The date when all equity vests at once"}, 
+          {"id": "b", "text": "An initial period before any equity vests"}, 
+          {"id": "c", "text": "The maximum value your equity can reach"}, 
+          {"id": "d", "text": "The deadline to exercise options"}]',
+        'b',
+        'A ''cliff'' is an initial period (typically 1 year) during which no equity vests. After the cliff date, a portion vests immediately, followed by regular vesting intervals.',
+        1
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Understanding Vesting Schedules';
+
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What is ''single-trigger acceleration''?', 
+        '[{"id": "a", "text": "Accelerated vesting if you''re promoted"}, 
+          {"id": "b", "text": "Accelerated vesting if the company reaches a revenue target"}, 
+          {"id": "c", "text": "Accelerated vesting if the company is acquired"}, 
+          {"id": "d", "text": "Accelerated vesting if you meet performance goals"}]',
+        'c',
+        'Single-trigger acceleration typically refers to accelerated vesting that occurs when the company is acquired or undergoes another change of control event.',
+        2
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Understanding Vesting Schedules';
+
+    -- Lesson 4 quiz questions
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What is the ''spread'' in stock options?', 
+        '[{"id": "a", "text": "The difference between grant date and exercise date"}, 
+          {"id": "b", "text": "The difference between your strike price and the fair market value"}, 
+          {"id": "c", "text": "The difference between pre-money and post-money valuation"}, 
+          {"id": "d", "text": "The difference between preferred and common stock prices"}]',
+        'b',
+        'The ''spread'' is the difference between the strike price of your options and the current fair market value (FMV) of the shares. This represents your potential gain (before taxes).',
+        1
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Strike Price and Fair Market Value';
+
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What is a 409A valuation?', 
+        '[{"id": "a", "text": "The process of determining your tax liability"}, 
+          {"id": "b", "text": "The value of your vested equity"}, 
+          {"id": "c", "text": "An independent assessment of a company''s fair market value"}, 
+          {"id": "d", "text": "The price at which you can sell your shares"}]',
+        'c',
+        'A 409A valuation is an independent, third-party assessment of a company''s fair market value for tax purposes. It determines the strike price for stock options and is typically updated every 12 months or after significant company events.',
+        2
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Strike Price and Fair Market Value';
+
+    -- Lesson 5 quiz questions
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What tax benefit do ISOs potentially offer compared to NSOs?', 
+        '[{"id": "a", "text": "No taxes ever"}, 
+          {"id": "b", "text": "Lower ordinary income tax rates"}, 
+          {"id": "c", "text": "Qualifying for long-term capital gains treatment"}, 
+          {"id": "d", "text": "Immediate tax deductions"}]',
+        'c',
+        'ISOs can potentially qualify for long-term capital gains tax treatment (which is typically lower than ordinary income tax rates) if certain holding periods are met after exercise.',
+        1
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Basic Tax Implications';
+
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'When is an 83(b) election typically filed?', 
+        '[{"id": "a", "text": "When you receive an equity grant"}, 
+          {"id": "b", "text": "Within 30 days of early exercising unvested options"}, 
+          {"id": "c", "text": "When you sell your shares"}, 
+          {"id": "d", "text": "When your company goes public"}]',
+        'b',
+        'An 83(b) election is typically filed within 30 days of early exercising unvested options or receiving restricted stock. It allows you to pay taxes on the current value rather than the future value when shares vest.',
+        2
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'Basic Tax Implications';
+
+    -- Lesson 6 quiz questions
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What is a ''lockup period'' after an IPO?', 
+        '[{"id": "a", "text": "The time when your equity vests"}, 
+          {"id": "b", "text": "The time when you can''t sell your shares"}, 
+          {"id": "c", "text": "The time when the company can''t issue new shares"}, 
+          {"id": "d", "text": "The time when the share price is guaranteed"}]',
+        'b',
+        'A lockup period is a time after an IPO (typically 90-180 days) during which employees and insiders are restricted from selling their shares to prevent excessive selling pressure on the new stock.',
+        1
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'When Companies Go Public or Get Acquired';
+
+    INSERT INTO public.course_quiz_questions (
+        lesson_id,
+        question,
+        options,
+        correct_answer,
+        explanation,
+        order_index
+    )
+    SELECT 
+        id, 
+        'What typically happens to unvested equity during an acquisition?', 
+        '[{"id": "a", "text": "It''s always forfeited"}, 
+          {"id": "b", "text": "It always vests immediately"}, 
+          {"id": "c", "text": "It depends on the acquisition terms and your employment agreement"}, 
+          {"id": "d", "text": "It converts to cash at the strike price"}]',
+        'c',
+        'What happens to unvested equity during an acquisition depends on the specific terms of the acquisition and your employment agreement. It may accelerate, continue on the original schedule, or be replaced with acquirer equity.',
+        2
+    FROM public.course_lessons 
+    WHERE module_id = module_id AND title = 'When Companies Go Public or Get Acquired';
+END $$;
+
+-- Add module IDs to existing learning paths if needed
+COMMENT ON TABLE public.course_modules IS 'Structured learning modules containing lessons and quizzes';
+COMMENT ON TABLE public.course_lessons IS 'Individual lessons within learning modules';
+COMMENT ON TABLE public.course_quiz_questions IS 'Quiz questions for specific lessons';

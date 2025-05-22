@@ -731,30 +731,66 @@ export default function Education() {
                               variant="secondary"
                               size="sm"
                               className="bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300"
-                              onClick={() => {
-                                // Reset all progress for this module
-                                const updatedTopics = completedTopics.filter(
-                                  id => !id.startsWith('equity_fundamentals_')
-                                );
-                                setCompletedTopics(updatedTopics);
-                                
-                                // Create or update learning path progress
-                                const updatedProgress = {
-                                  ...learningProgress,
-                                  equity_fundamentals: {
-                                    completed: false,
-                                    completedAt: null,
-                                    reset: true,
-                                    resetAt: new Date().toISOString()
+                              onClick={async () => {
+                                try {
+                                  let moduleId = "equity_fundamentals"; // Default fallback ID
+                                  
+                                  try {
+                                    // Try to get the module ID from the database first
+                                    const { data: courseModules, error } = await supabase
+                                      .from("course_modules")
+                                      .select("id")
+                                      .eq("title", "Equity Fundamentals")
+                                      .single();
+                                      
+                                    if (courseModules) {
+                                      moduleId = courseModules.id;
+                                    }
+                                  } catch (dbErr) {
+                                    console.warn("Could not fetch module from database, using fallback ID:", dbErr.message);
+                                    // Continue with fallback ID
                                   }
-                                };
-                                setLearningProgress(updatedProgress);
-                                
-                                // Alert that course has been reset
-                                alert("Course progress has been reset. You can now start from the beginning.");
-                                
-                                // Navigate to the course
-                                window.location.href = "/dashboard/education/equity-fundamentals";
+                                  
+                                  try {
+                                    // Try to use the course modules service
+                                    const { default: courseModulesService } = await import('@/utils/course-modules-service');
+                                    await courseModulesService.resetModuleProgress(moduleId);
+                                  } catch (serviceErr) {
+                                    console.warn("Could not use course module service:", serviceErr.message);
+                                    // Continue with manual reset
+                                  }
+                                  
+                                  // Always reset UI state, even if service fails
+                                  const updatedTopics = completedTopics.filter(
+                                    id => !id.startsWith('equity_fundamentals_')
+                                  );
+                                  setCompletedTopics(updatedTopics);
+                                  
+                                  // Create or update learning path progress
+                                  const updatedProgress = {
+                                    ...learningProgress,
+                                    equity_fundamentals: {
+                                      completed: false,
+                                      completedAt: null,
+                                      reset: true,
+                                      resetAt: new Date().toISOString()
+                                    }
+                                  };
+                                  setLearningProgress(updatedProgress);
+                                  
+                                  // Save changes to localStorage
+                                  localStorage.setItem("completedTopics", JSON.stringify(updatedTopics));
+                                  localStorage.setItem("learningProgress", JSON.stringify(updatedProgress));
+                                  
+                                  // Alert that course has been reset
+                                  alert("Course progress has been reset. You can now start from the beginning.");
+                                  
+                                  // Navigate to the course
+                                  window.location.href = "/dashboard/education/equity-fundamentals";
+                                } catch (err) {
+                                  console.error("Error resetting course progress:", err);
+                                  alert("There was an error resetting your progress. Please try again later.");
+                                }
                               }}
                             >
                               Restart Course

@@ -121,19 +121,19 @@ export function GlossaryTooltip({
     
     return (
       <div className="border p-4 rounded-lg mt-2 mb-4" onClick={handleView}>
-        <h4 className="font-medium">{termData.term}</h4>
-        <p className="mt-1 text-muted-foreground">{termData.definition}</p>
+        <div className="font-medium">{termData.term}</div>
+        <div className="mt-1 text-muted-foreground">{termData.definition}</div>
         
         {termData.examples && termData.examples.length > 0 && (
           <div className="mt-2">
-            <h5 className="font-medium text-sm">Example:</h5>
-            <p className="text-sm">{termData.examples[0]}</p>
+            <div className="font-medium text-sm">Example:</div>
+            <div className="text-sm">{termData.examples[0]}</div>
           </div>
         )}
         
         {termData.related_terms && termData.related_terms.length > 0 && (
           <div className="mt-2">
-            <h5 className="font-medium text-sm">Related terms:</h5>
+            <div className="font-medium text-sm">Related terms:</div>
             <div className="flex flex-wrap gap-1 mt-1">
               {termData.related_terms.map((relatedTerm, index) => (
                 <Badge key={index} variant="outline" className="text-xs">

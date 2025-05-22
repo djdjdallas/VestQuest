@@ -1,0 +1,21 @@
+-- Create the learning_paths table if it doesn't exist
+CREATE TABLE IF NOT EXISTS public.learning_paths (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    title text NOT NULL,
+    description text,
+    level text,
+    modules jsonb,
+    recommended_for jsonb,
+    estimated_time text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    user_id uuid REFERENCES auth.users(id),
+    is_template boolean DEFAULT false
+);
+
+-- Add new columns to learning_paths table for restart functionality
+ALTER TABLE public.learning_paths
+ADD COLUMN IF NOT EXISTS completion_requirements jsonb DEFAULT '{"min_lessons_completed": 1, "min_quiz_score": 70}',
+ADD COLUMN IF NOT EXISTS restart_enabled boolean DEFAULT true,
+ADD COLUMN IF NOT EXISTS last_updated_by uuid REFERENCES auth.users(id),
+ADD COLUMN IF NOT EXISTS version integer DEFAULT 1;

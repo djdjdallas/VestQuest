@@ -61,10 +61,10 @@ export function EnhancedTooltip({
             <div className="flex items-start">
               <InfoIcon className="h-4 w-4 text-primary mt-0.5 mr-2 flex-shrink-0" />
               <div>
-                <h4 className="font-medium text-sm">{term}</h4>
-                <p className="text-xs text-muted-foreground">
+                <div className="font-medium text-sm">{term}</div>
+                <div className="text-xs text-muted-foreground">
                   {basicDefinition}
-                </p>
+                </div>
               </div>
             </div>
 
