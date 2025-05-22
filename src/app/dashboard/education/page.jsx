@@ -713,6 +713,17 @@ export default function Education() {
                       }
                     />
                   ))}
+                  
+                  {/* Add link to Equity Fundamentals Course */}
+                  <EducationCard
+                    title="Equity Fundamentals Course"
+                    content="A comprehensive, beginner-friendly course covering all the essentials of equity compensation."
+                    example="Learn about stock options, RSUs, vesting schedules, taxation, and liquidity events."
+                    estimatedTime="45-60 min"
+                    tags={["beginner", "interactive", "comprehensive"]}
+                    isCompleted={completedContent.includes("equity_fundamentals_module")}
+                    learnMoreUrl="/dashboard/education/equity-fundamentals"
+                  />
                 </div>
               </div>
 
