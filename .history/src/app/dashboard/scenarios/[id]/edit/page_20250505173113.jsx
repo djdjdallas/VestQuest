@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { ScenarioForm } from "@/components/scenario/scenario-form";
+import { ScenarioForm } from "@/components/scenarios/scenario-form";
 import AuthLoading from "@/components/auth/AuthLoading";
 
 export default function EditScenarioPage({ params }) {
