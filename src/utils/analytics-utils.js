@@ -452,7 +452,7 @@ export const processScenarioComparisons = (scenarios, grants) => {
       const netValue = exitValue - exerciseCost - taxes;
 
       return {
-        name: scenario.name || "Unnamed Scenario",
+        name: scenario.scenario_name || scenario.name || "Unnamed Scenario",
         exit_type: scenario.exit_type || "Unknown",
         exerciseCost,
         grossValue: exitValue,

@@ -1,45 +1,41 @@
 // src/components/analytics/VestingTab.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import VestingForecastChart from "./VestingForecastChart";
 import VestingValueChart from "./VestingValueChart";
 import CumulativeVestingChart from "./CumulativeVestingChart";
-import { formatCurrency, formatPercentage } from "@/utils/format-utils";
-import {
-  CalendarIcon,
-  TrendingUpIcon,
-  PieChartIcon,
-  ArrowUpIcon,
-  ClockIcon,
-  CircleDollarSignIcon
-} from "lucide-react";
+import { VestingTimeline } from "@/components/vesting-timeline";
+import { UpcomingEventsTab } from "@/components/upcoming-events";
+import { formatCurrency, formatPercentage, formatNumber } from "@/utils/format-utils";
 import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  Legend,
-  ReferenceLine,
-  Label
-} from "recharts";
+  CalendarIcon, 
+  TrendingUpIcon, 
+  PieChartIcon, 
+  Clock,
+  Info, 
+  Bell
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  calculateDetailedVesting,
+  getUpcomingVestingEvents,
+} from "@/utils/enhanced-vesting-calculations";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 /**
  * Vesting Acceleration Rate calculation
  * Calculates the rate at which value is being added through vesting
  */
-// Fallback format number function in case it's not imported correctly
-const formatNumber = (value) => {
-  if (typeof value !== "number" || isNaN(value)) return "0";
-  return new Intl.NumberFormat("en-US").format(value);
-};
-
 const calculateVestingAcceleration = (valueForecast) => {
   if (!valueForecast || valueForecast.length < 2) return { monthly: 0, annual: 0 };
   
@@ -96,6 +92,102 @@ const calculateVestingStatus = (analytics, grants) => {
  */
 export const VestingTab = ({ analytics, grants }) => {
   const [viewMode, setViewMode] = useState("forecast");
+  const [enhancedGrants, setEnhancedGrants] = useState([]);
+  const [activeTab, setActiveTab] = useState("timeline");
+  const [calendarSynced, setCalendarSynced] = useState(false);
+  const [showCalendarPrompt, setShowCalendarPrompt] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [milestoneEvents, setMilestoneEvents] = useState([]);
+  const [nextMilestone, setNextMilestone] = useState(null);
+  const supabase = createClient();
+  
+  // Process the grants with detailed vesting calculations
+  useEffect(() => {
+    if (grants && grants.length > 0) {
+      const processedGrants = processGrants(grants);
+      setEnhancedGrants(processedGrants);
+      
+      // Calculate totals and upcoming events
+      calculateTotals(processedGrants);
+    }
+    
+    // Check if calendar syncing has been done before
+    const syncStatus = localStorage.getItem("vestingCalendarSynced");
+    if (syncStatus === "true") {
+      setCalendarSynced(true);
+    } else {
+      setShowCalendarPrompt(true);
+    }
+  }, [grants]);
+  
+  // Process grants with detailed vesting calculations
+  const processGrants = (grantsData) => {
+    if (!grantsData || grantsData.length === 0) return [];
+
+    return grantsData.map((grant) => {
+      const detailedVesting = calculateDetailedVesting(grant);
+      const upcomingVestingEvents = getUpcomingVestingEvents(grant, 12); // Look ahead 12 months
+
+      return {
+        ...grant,
+        detailedVesting,
+        upcomingVestingEvents,
+      };
+    });
+  };
+
+  // Calculate overall totals from processed grants
+  const calculateTotals = (processedGrants) => {
+    if (processedGrants.length === 0) return;
+
+    const allUpcomingEvents = [];
+    const allMilestoneEvents = [];
+
+    processedGrants.forEach((grant) => {
+      // Add upcoming vesting events
+      if (
+        grant.upcomingVestingEvents &&
+        grant.upcomingVestingEvents.length > 0
+      ) {
+        grant.upcomingVestingEvents.forEach((event) => {
+          // Calculate vesting percentage for this event
+          const percentageOfTotal = ((event.shares / grant.shares) * 100).toFixed(1);
+          const isMilestone = 
+            percentageOfTotal >= 25 || // 25%, 50%, 75%, 100% milestones
+            event.event === "Cliff Vesting" || 
+            event.event === "Final Vesting";
+            
+          const enrichedEvent = {
+            ...event,
+            company: grant.company_name,
+            grant_type: grant.grant_type,
+            grant_id: grant.id,
+            percentageOfTotal: parseFloat(percentageOfTotal),
+            isMilestone,
+            value: event.shares * (grant.current_fmv || 0)
+          };
+          
+          allUpcomingEvents.push(enrichedEvent);
+          
+          if (isMilestone) {
+            allMilestoneEvents.push(enrichedEvent);
+          }
+        });
+      }
+    });
+
+    // Sort upcoming events by date
+    allUpcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+    allMilestoneEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    setUpcomingEvents(allUpcomingEvents);
+    setMilestoneEvents(allMilestoneEvents);
+    
+    // Set next milestone if available
+    const now = new Date();
+    const nextMilestone = allMilestoneEvents.find(event => new Date(event.date) > now);
+    setNextMilestone(nextMilestone);
+  };
   
   // Calculate additional vesting metrics
   const accelerationRates = calculateVestingAcceleration(analytics.valueForecast);
@@ -138,180 +230,285 @@ export const VestingTab = ({ analytics, grants }) => {
   const projectedTotalValue = analytics.currentValue + 
     (accelerationRates.monthly * vestingStatus.remainingMonths);
     
+  // Memoize metrics data
+  const metricsData = useMemo(() => {
+    const totalShares = analytics.totalShares || 0;
+    const vestedShares = analytics.vestedShares || 0;
+    
+    const vestPercentage = totalShares > 0 
+      ? ((vestedShares / totalShares) * 100).toFixed(1)
+      : 0;
+      
+    return {
+      totalShares,
+      vestedShares,
+      unvestedShares: totalShares - vestedShares,
+      vestPercentage,
+      currentValue: analytics.currentValue || 0
+    };
+  }, [analytics]);
+
+  const handleCalendarSync = () => {
+    // In a real implementation, this would integrate with the user's calendar
+    // For now, we'll just simulate successful syncing
+    toast.success("Vesting events synced to your calendar");
+    setCalendarSynced(true);
+    setShowCalendarPrompt(false);
+    localStorage.setItem("vestingCalendarSynced", "true");
+  };
+    
   return (
     <div className="space-y-6">
-      {/* Vesting Overview Metrics */}
+      {/* Vesting Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Vesting Progress</p>
-                <p className="text-2xl font-bold mt-1">
-                  {formatPercentage(vestingStatus.percentageComplete)}
-                </p>
-              </div>
-              <div className="p-2 bg-primary/10 rounded-full">
-                <PieChartIcon className="h-5 w-5 text-primary" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Shares
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    The total number of shares across all your equity grants
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatNumber(metricsData.totalShares)}
             </div>
-            <div className="mt-4 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary rounded-full"
-                style={{ width: `${Math.min(100, vestingStatus.percentageComplete)}%` }}
+            <p className="text-xs text-muted-foreground">
+              Across {grants.length} grant{grants.length !== 1 ? "s" : ""}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Vested Shares
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    The number of shares that have vested and are now yours
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatNumber(metricsData.vestedShares)}
+            </div>
+            <div className="mt-1 h-2 w-full rounded-full bg-muted">
+              <div
+                className="h-2 rounded-full bg-primary"
+                style={{
+                  width: `${
+                    metricsData.totalShares > 0 
+                      ? (metricsData.vestedShares / metricsData.totalShares) * 100 
+                      : 0
+                  }%`,
+                }}
               ></div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {formatNumber(analytics.vestedShares)} of {formatNumber(analytics.totalShares)} shares vested
+            <p className="text-xs text-muted-foreground mt-1">
+              {metricsData.vestPercentage}% vested
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Remaining Time</p>
-                <p className="text-2xl font-bold mt-1">
-                  {vestingStatus.remainingMonths} months
-                </p>
-              </div>
-              <div className="p-2 bg-primary/10 rounded-full">
-                <ClockIcon className="h-5 w-5 text-primary" />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Current Value
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>The value of your vested shares at current FMV</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(metricsData.currentValue)}
             </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              Complete vesting expected by{" "}
-              {new Date(
-                new Date().setMonth(new Date().getMonth() + vestingStatus.remainingMonths)
-              ).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+            <p className="text-xs text-muted-foreground">
+              Based on current FMV
             </p>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Monthly Rate</p>
-                <p className="text-2xl font-bold mt-1">
-                  {formatCurrency(accelerationRates.monthly)}
+
+        <Card className={nextMilestone ? "border-primary/30 bg-primary/5" : ""}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Next Milestone
+            </CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Your next significant vesting milestone</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardHeader>
+          <CardContent>
+            {nextMilestone ? (
+              <>
+                <div className="text-lg font-bold">
+                  {format(new Date(nextMilestone.date), "MMM d, yyyy")}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Bell className="h-3 w-3 text-primary" />
+                  <p className="text-xs font-medium text-primary">
+                    {nextMilestone.event === "Cliff Vesting" 
+                      ? "Cliff Date" 
+                      : nextMilestone.event === "Final Vesting"
+                      ? "Final Vesting"
+                      : `${nextMilestone.percentageOfTotal}% Vesting`}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatNumber(nextMilestone.shares)} shares from {nextMilestone.company}
                 </p>
-              </div>
-              <div className="p-2 bg-primary/10 rounded-full">
-                <CalendarIcon className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              {formatCurrency(accelerationRates.annual)} vesting per year
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Projected Value</p>
-                <p className="text-2xl font-bold mt-1">
-                  {formatCurrency(projectedTotalValue)}
+              </>
+            ) : (
+              <>
+                <div className="text-lg font-bold">No milestones</div>
+                <p className="text-xs text-muted-foreground">
+                  No significant vesting events upcoming
                 </p>
-              </div>
-              <div className="p-2 bg-primary/10 rounded-full">
-                <TrendingUpIcon className="h-5 w-5 text-primary" />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              At current FMV upon full vesting
-            </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
       
-      {/* Vesting Projection Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Vesting Value Projection</CardTitle>
-          <CardDescription>
-            Projected equity value accumulation over time
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={timelineData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorVested" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
-                  </linearGradient>
-                  <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" />
-                <YAxis 
-                  tickFormatter={(value) => value === 0 ? '0' : `$${(value / 1000).toFixed(0)}k`}
-                />
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip
-                  formatter={(value) => [formatCurrency(value), 'Value']}
-                />
-                <ReferenceLine y={analytics.currentValue} label="Current" stroke="#6b7280" />
-                <Area
-                  type="monotone"
-                  dataKey="vestedValue"
-                  stroke="#10b981"
-                  fillOpacity={1}
-                  fill="url(#colorVested)"
-                  name="Actual Vested"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="projectedValue"
-                  stroke="#3b82f6"
-                  fillOpacity={1}
-                  fill="url(#colorProjected)"
-                  name="Projected Value"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-            
-      {/* Detailed Vesting Charts */}
-      <Tabs defaultValue="upcoming" className="space-y-4">
+      {/* Next vesting event highlight - only show if available */}
+      {upcomingEvents.length > 0 && (
+        <Card className="mb-6 bg-muted/30">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-primary/10 p-2 sm:p-3 mt-1">
+                  <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Next vesting event</p>
+                  <h3 className="text-lg font-medium">{format(new Date(upcomingEvents[0].date), "MMMM d, yyyy")}</h3>
+                  <p className="text-sm">
+                    {formatNumber(upcomingEvents[0].shares)} shares ({formatCurrency(upcomingEvents[0].value)}) from {upcomingEvents[0].company}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:items-end gap-2">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCalendarSync}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    Set Reminder
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setActiveTab("upcoming")}>
+                    View All Events
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {upcomingEvents.length > 1 
+                    ? `+ ${upcomingEvents.length - 1} more events in the next 12 months` 
+                    : "No other events in the next 12 months"}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Main Tabs */}
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="upcoming">Upcoming Vesting</TabsTrigger>
-          <TabsTrigger value="value">Value Forecast</TabsTrigger>
-          <TabsTrigger value="cumulative">Cumulative View</TabsTrigger>
+          <TabsTrigger value="timeline">Vesting Timeline</TabsTrigger>
+          <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
+          <TabsTrigger value="forecast">Vesting Forecast</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="upcoming">
-          <VestingForecastChart 
-            data={analytics.vestingForecast || []} 
-            grants={grants || []} 
+        <TabsContent value="timeline" className="space-y-4">
+          <Card>
+            <CardContent className="pt-6">
+              <VestingTimeline grants={enhancedGrants} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="upcoming" className="space-y-4">
+          {/* Use the UpcomingEventsTab component */}
+          <UpcomingEventsTab 
+            initialEvents={upcomingEvents} 
+            milestoneEvents={milestoneEvents}
+            onCalendarSync={handleCalendarSync}
+            calendarSynced={calendarSynced}
           />
         </TabsContent>
         
-        <TabsContent value="value">
-          <VestingValueChart 
-            data={analytics.valueForecast || []} 
-            grants={grants || []} 
-          />
-        </TabsContent>
-        
-        <TabsContent value="cumulative">
-          <CumulativeVestingChart
-            forecastData={analytics.vestingForecast || []}
-            vestedShares={analytics.vestedShares || 0}
-            valueForecast={analytics.valueForecast || []}
-          />
+        <TabsContent value="forecast" className="space-y-4">
+          {/* Vesting Projection Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Vesting Forecast</CardTitle>
+              <CardDescription>
+                Detailed charts showing vesting projections
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="upcoming" className="space-y-4">
+                <TabsList>
+                  <TabsTrigger value="upcoming">Upcoming Vesting</TabsTrigger>
+                  <TabsTrigger value="value">Value Forecast</TabsTrigger>
+                  <TabsTrigger value="cumulative">Cumulative View</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="upcoming">
+                  <VestingForecastChart 
+                    data={analytics.vestingForecast || []} 
+                    grants={grants || []} 
+                  />
+                </TabsContent>
+                
+                <TabsContent value="value">
+                  <VestingValueChart 
+                    data={analytics.valueForecast || []} 
+                    grants={grants || []} 
+                  />
+                </TabsContent>
+                
+                <TabsContent value="cumulative">
+                  <CumulativeVestingChart
+                    forecastData={analytics.vestingForecast || []}
+                    vestedShares={analytics.vestedShares || 0}
+                    valueForecast={analytics.valueForecast || []}
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

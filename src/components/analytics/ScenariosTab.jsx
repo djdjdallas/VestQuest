@@ -12,11 +12,16 @@ import TaxEfficiencyChart from "./TaxEfficiencyChart";
 /**
  * Scenarios Comparison tab content
  * @param {Object} analytics - Analytics data object
+ * @param {Array} scenarios - Scenarios data
  */
-export const ScenariosTab = ({ analytics }) => {
+export const ScenariosTab = ({ analytics, scenarios }) => {
   // Check if we have scenario data
   const hasScenarios =
     analytics.comparisonData && analytics.comparisonData.length > 0;
+
+  // Debug: log comparison data
+  console.log("Scenario comparison data:", analytics.comparisonData);
+  console.log("Original scenarios data:", scenarios);
 
   if (!hasScenarios) {
     return (
