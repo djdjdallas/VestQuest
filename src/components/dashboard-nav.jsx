@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export function DashboardNav() {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const pathname = usePathname();
 
   const items = [
@@ -100,9 +100,8 @@ export function DashboardNav() {
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setExpanded(false);
-      } else {
-        setExpanded(true);
       }
+      // Removed the else clause to prevent auto-expanding on large screens
     };
 
     // Set initial state
@@ -121,7 +120,7 @@ export function DashboardNav() {
       onMouseEnter={() =>
         !expanded && window.innerWidth >= 768 && setExpanded(true)
       }
-      onMouseLeave={() => setExpanded(false)}
+      onMouseLeave={() => window.innerWidth >= 768 && setExpanded(false)}
     >
       <Button
         variant="ghost"
