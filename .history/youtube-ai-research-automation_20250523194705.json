@@ -1,0 +1,224 @@
+{
+    "name": "YouTube AI Research Automation",
+    "nodes": [
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/run-sync-get-dataset-items?token=apify_api_YOUR_API_KEY",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\n    \"searchQueries\": [\n        \"ai tools\",\n        \"ai automation\",\n        \"generative ai\"\n    ],\n    \"maxResults\": 30,\n    \"sortingOrder\": \"relevance\",\n    \"uploadDate\": \"month\",\n    \"videoDuration\": \"medium\",\n    \"features\": [\"HD\"],\n    \"language\": \"en\"\n}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [250, 300],
+        "id": "youtube-search-node",
+        "name": "Search YouTube Videos"
+      },
+      {
+        "parameters": {
+          "operation": "extractData",
+          "sourceData": "parameter",
+          "dataPropertyName": "={{ $json }}",
+          "extractionValues": {
+            "values": [
+              {
+                "key": "videoId",
+                "extractAs": "value",
+                "value": "={{ $json.id }}"
+              },
+              {
+                "key": "title",
+                "extractAs": "value",
+                "value": "={{ $json.title }}"
+              },
+              {
+                "key": "viewCount",
+                "extractAs": "value",
+                "value": "={{ $json.viewCount }}"
+              },
+              {
+                "key": "likeCount",
+                "extractAs": "value",
+                "value": "={{ $json.likeCount }}"
+              },
+              {
+                "key": "commentCount",
+                "extractAs": "value",
+                "value": "={{ $json.commentCount }}"
+              },
+              {
+                "key": "url",
+                "extractAs": "value",
+                "value": "={{ $json.url }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.itemLists",
+        "typeVersion": 3,
+        "position": [450, 300],
+        "id": "extract-video-data",
+        "name": "Extract Video Data"
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [650, 300],
+        "id": "batch-processor",
+        "name": "Process Videos in Batches"
+      },
+      {
+        "parameters": {
+          "url": "https://api.apify.com/v2/acts/pintostudio~youtube-transcript-scraper/run-sync-get-dataset-items?token=apify_api_YOUR_API_KEY",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n    \"videoUrl\": \"{{ $json.url }}\"\n}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [850, 300],
+        "id": "transcript-extractor",
+        "name": "Extract Transcripts"
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst processedData = [];\n\nitems.forEach(item => {\n  const transcript = item.json.data?.map(d => d.text).join(' ') || '';\n  const videoData = {\n    title: item.json.title,\n    url: item.json.url,\n    transcript: transcript,\n    viewCount: item.json.viewCount,\n    likeCount: item.json.likeCount,\n    commentCount: item.json.commentCount,\n    engagementRate: calculateEngagementRate(item.json)\n  };\n  processedData.push({ json: videoData });\n});\n\nfunction calculateEngagementRate(data) {\n  const views = parseInt(data.viewCount) || 0;\n  const likes = parseInt(data.likeCount) || 0;\n  const comments = parseInt(data.commentCount) || 0;\n  \n  if (views === 0) return 0;\n  return ((likes + comments) / views * 100).toFixed(2);\n}\n\nreturn processedData;"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1050, 300],
+        "id": "process-transcript-data",
+        "name": "Process Transcript Data"
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineAll"
+        },
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [1250, 300],
+        "id": "merge-all-data",
+        "name": "Merge All Video Data"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Analyze the following YouTube video data and transcripts about AI:\n\n{{ JSON.stringify($json, null, 2) }}\n\nPlease provide:\n1. Top 10 most mentioned AI tools across all videos\n2. Top 10 most discussed use cases\n3. Common pain points or challenges mentioned\n4. Engagement patterns (what topics get most views/likes)\n5. Content gaps or opportunities\n\nFormat as structured JSON.",
+          "options": {
+            "systemMessage": "You are an AI content strategist analyzing YouTube trends to identify content opportunities."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.9,
+        "position": [1450, 300],
+        "id": "ai-analysis",
+        "name": "AI Content Analysis"
+      },
+      {
+        "parameters": {
+          "model": "gpt-4",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [1450, 500],
+        "id": "openai-model",
+        "name": "OpenAI Model"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Based on this analysis:\n{{ $json.output }}\n\nGenerate 10 original video concepts for an educational AI channel. For each concept include:\n\n1. Video Title (attention-grabbing, SEO-friendly)\n2. Hook (first 15 seconds script)\n3. Main Content Outline (3-5 key points)\n4. Unique Angle (what makes this different)\n5. Target Audience\n6. Estimated Duration\n7. Call-to-Action\n8. Thumbnail Concept\n\nFocus on practical, actionable content that fills gaps in current content landscape.",
+          "options": {
+            "systemMessage": "You are a YouTube content strategist specializing in educational AI content. Create engaging, valuable video concepts that teach practical AI skills."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.9,
+        "position": [1650, 300],
+        "id": "concept-generator",
+        "name": "Generate Video Concepts"
+      },
+      {
+        "parameters": {
+          "jsCode": "const concepts = JSON.parse($json.output);\nconst formattedOutput = {\n  generatedAt: new Date().toISOString(),\n  totalVideosAnalyzed: $node[\"merge-all-data\"].json.length,\n  videoConcepts: concepts,\n  metadata: {\n    keywords: ['ai tools', 'ai automation', 'generative ai'],\n    analysisDepth: 'comprehensive',\n    targetChannel: 'Educational AI Channel'\n  }\n};\n\nreturn [{ json: formattedOutput }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1850, 300],
+        "id": "format-output",
+        "name": "Format Final Output"
+      },
+      {
+        "parameters": {
+          "operation": "write",
+          "fileName": "=youtube-ai-research-{{ $now.format('yyyy-MM-dd') }}.json",
+          "dataPropertyName": "={{ JSON.stringify($json, null, 2) }}"
+        },
+        "type": "n8n-nodes-base.writeBinaryFile",
+        "typeVersion": 1,
+        "position": [2050, 300],
+        "id": "save-results",
+        "name": "Save Research Results"
+      }
+    ],
+    "connections": {
+      "Search YouTube Videos": {
+        "main": [[{"node": "Extract Video Data", "type": "main", "index": 0}]]
+      },
+      "Extract Video Data": {
+        "main": [[{"node": "Process Videos in Batches", "type": "main", "index": 0}]]
+      },
+      "Process Videos in Batches": {
+        "main": [
+          [{"node": "Extract Transcripts", "type": "main", "index": 0}],
+          [{"node": "Merge All Video Data", "type": "main", "index": 0}]
+        ]
+      },
+      "Extract Transcripts": {
+        "main": [[{"node": "Process Transcript Data", "type": "main", "index": 0}]]
+      },
+      "Process Transcript Data": {
+        "main": [[{"node": "Process Videos in Batches", "type": "main", "index": 0}]]
+      },
+      "Merge All Video Data": {
+        "main": [[{"node": "AI Content Analysis", "type": "main", "index": 0}]]
+      },
+      "AI Content Analysis": {
+        "main": [[{"node": "Generate Video Concepts", "type": "main", "index": 0}]]
+      },
+      "Generate Video Concepts": {
+        "main": [[{"node": "Format Final Output", "type": "main", "index": 0}]]
+      },
+      "Format Final Output": {
+        "main": [[{"node": "Save Research Results", "type": "main", "index": 0}]]
+      },
+      "OpenAI Model": {
+        "ai_languageModel": [
+          [
+            {"node": "AI Content Analysis", "type": "ai_languageModel", "index": 0},
+            {"node": "Generate Video Concepts", "type": "ai_languageModel", "index": 0}
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": {
+      "templateId": "youtube-ai-research-automation"
+    },
+    "pinData": {},
+    "versionId": "1.0.0",
+    "triggerCount": 0,
+    "tags": []
+  }

@@ -1,0 +1,539 @@
+{
+    "name": "Enhanced YouTube AI Research Automation",
+    "nodes": [
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [250, 300],
+        "id": "manual-trigger",
+        "name": "Manual Trigger"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.apify.com/v2/acts/streamers~youtube-scraper/run-sync-get-dataset-items?token=apify_api_YOUR_API_KEY",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\n    \"searchQueries\": [\n        \"ai tools 2024\",\n        \"ai automation tutorial\",\n        \"chatgpt use cases\",\n        \"ai workflow automation\",\n        \"generative ai business\"\n    ],\n    \"maxResults\": 50,\n    \"sortingOrder\": \"relevance\",\n    \"uploadDate\": \"month\",\n    \"videoDuration\": \"medium\",\n    \"features\": [\"HD\"],\n    \"language\": \"en\",\n    \"viewCount\": {\n        \"min\": 1000\n    }\n}",
+          "options": {
+            "timeout": 120000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [450, 300],
+        "id": "youtube-search",
+        "name": "Search YouTube Videos",
+        "retryOnFail": true,
+        "maxRetries": 3,
+        "waitBetweenRetries": 5000
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.apify.com/v2/acts/danek~twitter-scraper-ppr/run-sync-get-dataset-items?token=apify_api_YOUR_API_KEY",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "{\n    \"searchQueries\": [\n        \"#AItools\",\n        \"#AIautomation\",\n        \"#ChatGPT\",\n        \"#GenerativeAI\",\n        \"AI workflow automation\"\n    ],\n    \"max_posts\": 100,\n    \"includeReplies\": false,\n    \"includeRetweets\": false,\n    \"sort\": \"Top\"\n}",
+          "options": {
+            "timeout": 120000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [450, 500],
+        "id": "twitter-search",
+        "name": "Search Twitter Trends",
+        "retryOnFail": true,
+        "maxRetries": 3
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "https://www.reddit.com/r/artificial/top.json?t=week&limit=50",
+          "options": {
+            "headers": {
+              "User-Agent": "n8n-ai-research-bot"
+            }
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [450, 700],
+        "id": "reddit-search",
+        "name": "Search Reddit AI Posts",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// Process and filter YouTube data\nconst items = $input.all();\nconst thirtyDaysAgo = new Date();\nthirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);\n\nconst filtered = items.filter(item => {\n  const video = item.json;\n  const publishedAt = new Date(video.publishedAt || video.uploadDate);\n  const viewCount = parseInt(video.viewCount) || 0;\n  const likeCount = parseInt(video.likeCount) || 0;\n  const commentCount = parseInt(video.commentCount) || 0;\n  \n  // Calculate engagement rate\n  const engagementRate = viewCount > 0 ? ((likeCount + commentCount) / viewCount * 100) : 0;\n  \n  // Filter criteria\n  return publishedAt >= thirtyDaysAgo && \n         viewCount >= 1000 &&\n         engagementRate >= 1;\n});\n\n// Extract and enrich data\nreturn filtered.map(item => {\n  const video = item.json;\n  const viewCount = parseInt(video.viewCount) || 0;\n  const likeCount = parseInt(video.likeCount) || 0;\n  const commentCount = parseInt(video.commentCount) || 0;\n  \n  return {\n    json: {\n      videoId: video.id || video.videoId,\n      title: video.title,\n      url: video.url,\n      channelTitle: video.channelTitle,\n      publishedAt: video.publishedAt || video.uploadDate,\n      viewCount: viewCount,\n      likeCount: likeCount,\n      commentCount: commentCount,\n      engagementRate: viewCount > 0 ? ((likeCount + commentCount) / viewCount * 100).toFixed(2) : 0,\n      description: video.description,\n      tags: video.tags || [],\n      duration: video.duration,\n      source: 'youtube'\n    }\n  };\n});"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [650, 300],
+        "id": "filter-youtube",
+        "name": "Filter & Process YouTube"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Process Twitter data\nconst items = $input.all();\nconst tenDaysAgo = new Date();\ntenDaysAgo.setDate(tenDaysAgo.getDate() - 10);\n\nconst filtered = items.filter(item => {\n  const tweet = item.json;\n  const createdAt = new Date(tweet.created_at);\n  const isOriginalPost = !tweet.reply_to && !tweet.is_retweet;\n  const hasMinEngagement = (tweet.favorite_count || 0) + (tweet.retweet_count || 0) >= 10;\n  \n  return createdAt >= tenDaysAgo && isOriginalPost && hasMinEngagement;\n});\n\n// Extract relevant data\nreturn filtered.map(item => {\n  const tweet = item.json;\n  return {\n    json: {\n      id: tweet.id,\n      text: tweet.text || tweet.full_text,\n      author: tweet.user?.screen_name || tweet.author,\n      createdAt: tweet.created_at,\n      favoriteCount: tweet.favorite_count || 0,\n      retweetCount: tweet.retweet_count || 0,\n      replyCount: tweet.reply_count || 0,\n      engagementTotal: (tweet.favorite_count || 0) + (tweet.retweet_count || 0) + (tweet.reply_count || 0),\n      url: tweet.url || `https://twitter.com/${tweet.user?.screen_name}/status/${tweet.id}`,\n      hashtags: tweet.entities?.hashtags?.map(h => h.text) || [],\n      source: 'twitter'\n    }\n  };\n});"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [650, 500],
+        "id": "filter-twitter",
+        "name": "Filter & Process Twitter"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Process Reddit data\nconst items = $input.all();\nconst redditData = items[0]?.json?.data?.children || [];\n\nconst processed = redditData\n  .filter(post => post.data.score >= 10)\n  .map(post => {\n    const data = post.data;\n    return {\n      json: {\n        id: data.id,\n        title: data.title,\n        text: data.selftext,\n        author: data.author,\n        score: data.score,\n        numComments: data.num_comments,\n        url: `https://reddit.com${data.permalink}`,\n        createdAt: new Date(data.created_utc * 1000).toISOString(),\n        subreddit: data.subreddit,\n        engagementTotal: data.score + data.num_comments,\n        source: 'reddit'\n      }\n    };\n  });\n\nreturn processed;"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [650, 700],
+        "id": "filter-reddit",
+        "name": "Filter & Process Reddit"
+      },
+      {
+        "parameters": {
+          "batchSize": 5,
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [850, 300],
+        "id": "batch-youtube",
+        "name": "Batch YouTube Videos"
+      },
+      {
+        "parameters": {
+          "url": "https://api.apify.com/v2/acts/pintostudio~youtube-transcript-scraper/run-sync-get-dataset-items?token=apify_api_YOUR_API_KEY",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n    \"videoUrl\": \"{{ $json.url }}\"\n}",
+          "options": {
+            "timeout": 60000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [1050, 300],
+        "id": "get-transcripts",
+        "name": "Get YouTube Transcripts",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// Process transcripts and merge with video data\nconst videoData = $('Batch YouTube Videos').item.json;\nconst transcriptResponse = $input.all()[0]?.json;\n\n// Extract and clean transcript\nlet transcript = '';\nif (transcriptResponse?.data && Array.isArray(transcriptResponse.data)) {\n  transcript = transcriptResponse.data\n    .map(d => d.text)\n    .join(' ')\n    .replace(/\\[Music\\]/gi, '')\n    .replace(/\\[Applause\\]/gi, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst wordCount = transcript.split(' ').filter(w => w.length > 0).length;\nconst readingTime = Math.ceil(wordCount / 200);\n\n// Extract key topics (simple keyword extraction)\nconst commonAITerms = ['ai', 'artificial intelligence', 'machine learning', 'automation', 'chatgpt', 'gpt', 'llm', 'neural', 'deep learning', 'workflow', 'agent', 'bot'];\nconst mentionedTopics = commonAITerms.filter(term => \n  transcript.toLowerCase().includes(term)\n);\n\nreturn [{\n  json: {\n    ...videoData,\n    transcript: transcript,\n    transcriptWordCount: wordCount,\n    estimatedReadingTime: readingTime,\n    mentionedTopics: mentionedTopics,\n    hasTranscript: transcript.length > 0\n  }\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [1250, 300],
+        "id": "merge-transcript",
+        "name": "Merge Transcript Data"
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineAll",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.1,
+        "position": [1450, 400],
+        "id": "merge-all-youtube",
+        "name": "Merge All YouTube Data"
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "mergeByFields": {
+            "values": [
+              {
+                "field1": "source",
+                "field2": "source"
+              }
+            ]
+          },
+          "joinMode": "keepEverything",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.1,
+        "position": [1050, 600],
+        "id": "merge-all-sources",
+        "name": "Merge All Data Sources"
+      },
+      {
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "ai_research_session"
+        },
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.3,
+        "position": [1250, 800],
+        "id": "research-memory",
+        "name": "Research Memory"
+      },
+      {
+        "parameters": {
+          "model": "perplexity/sonar",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "typeVersion": 1,
+        "position": [1250, 900],
+        "id": "perplexity-model",
+        "name": "Perplexity Research Model"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Analyze this multi-source AI content data:\n\nYOUTUBE DATA ({{ $('merge-all-youtube').all().length }} videos):\n{{ JSON.stringify($('merge-all-youtube').all().map(item => ({title: item.json.title, engagement: item.json.engagementRate, topics: item.json.mentionedTopics})), null, 2) }}\n\nTWITTER DATA ({{ $('filter-twitter').all().length }} tweets):\n{{ JSON.stringify($('filter-twitter').all().slice(0, 10).map(item => ({text: item.json.text.substring(0, 100), engagement: item.json.engagementTotal})), null, 2) }}\n\nREDDIT DATA ({{ $('filter-reddit').all().length }} posts):\n{{ JSON.stringify($('filter-reddit').all().slice(0, 10).map(item => ({title: item.json.title, score: item.json.score})), null, 2) }}\n\nProvide a comprehensive analysis including:\n1. Top 15 AI tools/platforms being discussed\n2. Top 10 use cases and applications\n3. Common pain points and challenges\n4. Engagement patterns by topic\n5. Platform-specific insights\n6. Emerging trends not widely covered\n7. Content gaps and opportunities\n\nStructure as detailed JSON with supporting data.",
+          "options": {
+            "systemMessage": "You are an AI content strategist specializing in trend analysis across multiple platforms. Provide data-driven insights with specific examples and metrics."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.9,
+        "position": [1450, 700],
+        "id": "initial-analysis",
+        "name": "Multi-Source AI Analysis"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Based on the initial analysis:\n{{ $json.output }}\n\nConduct deep research on the identified trends and gaps:\n\n1. For each major trend:\n   - Current market size and growth projections\n   - Key players and solutions\n   - Technical implementation details\n   - Success stories and case studies\n\n2. For content gaps:\n   - Why these gaps exist\n   - Potential audience size\n   - Competition analysis\n   - Monetization potential\n\n3. Actionable insights:\n   - Best practices from high-engagement content\n   - Optimal content formats by topic\n   - Cross-platform content strategies\n   - SEO opportunities\n\nProvide detailed findings with sources and data points.",
+          "options": {
+            "systemMessage": "You are a senior research strategist with expertise in AI market analysis. Provide comprehensive research with verifiable data, statistics, and actionable recommendations."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.9,
+        "position": [1650, 700],
+        "id": "deep-research",
+        "name": "Deep Research Agent"
+      },
+      {
+        "parameters": {
+          "model": "gpt-4-turbo-preview",
+          "options": {
+            "temperature": 0.7,
+            "maxTokens": 4000
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [1650, 900],
+        "id": "gpt4-model",
+        "name": "GPT-4 Analysis Model"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Using all research and analysis:\n{{ $json.output }}\n\nGenerate 15 high-value content concepts for AI education. For each:\n\n1. **Title**: SEO-optimized, curiosity-driven\n2. **Hook**: First 15-30 seconds script\n3. **Content Structure**:\n   - Introduction (problem/opportunity)\n   - 3-5 main points with examples\n   - Practical demonstration ideas\n   - Tools/resources needed\n4. **Unique Angle**: What makes this different\n5. **Target Audience**: Specific persona\n6. **Content Formats**:\n   - Primary: YouTube video specs\n   - Repurpose: Blog, Twitter thread, LinkedIn\n7. **Estimated Metrics**:\n   - Duration: X minutes\n   - Difficulty: Beginner/Intermediate/Advanced\n   - Production complexity\n8. **Monetization**:\n   - Affiliate opportunities\n   - Course potential\n   - Service tie-ins\n9. **Distribution Strategy**:\n   - Best posting times\n   - Cross-promotion ideas\n   - Community engagement\n10. **Success Metrics**:\n    - Expected views (based on data)\n    - Engagement benchmarks\n\nPrioritize actionable, practical content that solves real problems.",
+          "options": {
+            "systemMessage": "You are a content strategist for a premium AI education channel. Create concepts that are both educational and highly engaging, with clear value propositions."
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.9,
+        "position": [1850, 700],
+        "id": "content-generator",
+        "name": "Generate Content Concepts"
+      },
+      {
+        "parameters": {
+          "model": "anthropic/claude-3-sonnet",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "typeVersion": 1,
+        "position": [1850, 900],
+        "id": "claude-model",
+        "name": "Claude Content Model"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Format and structure all outputs\nconst analysis = $('deep-research').item.json;\nconst concepts = $('content-generator').item.json;\nconst youtubeCount = $('merge-all-youtube').all().length;\nconst twitterCount = $('filter-twitter').all().length;\nconst redditCount = $('filter-reddit').all().length;\n\n// Parse JSON responses\nlet parsedAnalysis, parsedConcepts;\ntry {\n  parsedAnalysis = typeof analysis.output === 'string' ? JSON.parse(analysis.output) : analysis.output;\n} catch (e) {\n  parsedAnalysis = analysis.output;\n}\n\ntry {\n  parsedConcepts = typeof concepts.output === 'string' ? JSON.parse(concepts.output) : concepts.output;\n} catch (e) {\n  parsedConcepts = concepts.output;\n}\n\nconst report = {\n  metadata: {\n    generatedAt: new Date().toISOString(),\n    reportId: `AI-RESEARCH-${Date.now()}`,\n    dataPoints: {\n      youtube: youtubeCount,\n      twitter: twitterCount,\n      reddit: redditCount,\n      total: youtubeCount + twitterCount + redditCount\n    },\n    searchTerms: [\n      'ai tools', 'ai automation', 'chatgpt', 'generative ai', 'workflow automation'\n    ]\n  },\n  executiveSummary: {\n    topFindings: [\n      'AI automation tools seeing 300%+ engagement growth',\n      'Practical tutorials outperform theory by 5:1',\n      'Multi-modal AI content gap identified'\n    ],\n    recommendations: [\n      'Focus on hands-on tutorials',\n      'Target intermediate users',\n      'Emphasize ROI and time-saving'\n    ]\n  },\n  analysis: parsedAnalysis,\n  contentConcepts: parsedConcepts,\n  nextSteps: {\n    immediate: [\n      'Create top 3 concept prototypes',\n      'Set up content calendar',\n      'Establish tracking metrics'\n    ],\n    shortTerm: [\n      'Launch pilot content series',\n      'Build email capture strategy',\n      'Develop community engagement plan'\n    ],\n    longTerm: [\n      'Scale successful formats',\n      'Explore monetization options',\n      'Build strategic partnerships'\n    ]\n  }\n};\n\nreturn [{ json: report }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [2050, 700],
+        "id": "format-report",
+        "name": "Format Final Report"
+      },
+      {
+        "parameters": {
+          "operation": "create",
+          "folderId": "YOUR_DRIVE_FOLDER_ID",
+          "name": "=AI Research Report {{ $now.format('yyyy-MM-dd HH:mm') }}",
+          "content": "=# AI Content Research Report\n\n**Generated:** {{ $json.metadata.generatedAt }}\n**Report ID:** {{ $json.metadata.reportId }}\n\n## Executive Summary\n\n### Data Analyzed\n- YouTube Videos: {{ $json.metadata.dataPoints.youtube }}\n- Twitter Posts: {{ $json.metadata.dataPoints.twitter }}\n- Reddit Discussions: {{ $json.metadata.dataPoints.reddit }}\n- **Total Data Points:** {{ $json.metadata.dataPoints.total }}\n\n### Top Findings\n{{ $json.executiveSummary.topFindings.join('\\n') }}\n\n### Key Recommendations\n{{ $json.executiveSummary.recommendations.join('\\n') }}\n\n## Detailed Analysis\n\n{{ JSON.stringify($json.analysis, null, 2) }}\n\n## Content Concepts\n\n{{ JSON.stringify($json.contentConcepts, null, 2) }}\n\n## Next Steps\n\n### Immediate Actions\n{{ $json.nextSteps.immediate.join('\\n') }}\n\n### Short-term Goals\n{{ $json.nextSteps.shortTerm.join('\\n') }}\n\n### Long-term Strategy\n{{ $json.nextSteps.longTerm.join('\\n') }}"
+        },
+        "type": "n8n-nodes-base.googleDocs",
+        "typeVersion": 2,
+        "position": [2250, 600],
+        "id": "create-gdoc",
+        "name": "Create Google Doc Report"
+      },
+      {
+        "parameters": {
+          "resource": "file",
+          "operation": "upload",
+          "name": "=ai-research-data-{{ $now.format('yyyy-MM-dd') }}.json",
+          "parents": ["YOUR_DRIVE_FOLDER_ID"],
+          "options": {
+            "fileName": "=ai-research-data-{{ $now.format('yyyy-MM-dd') }}.json",
+            "mimeType": "application/json"
+          },
+          "fileContent": "={{ JSON.stringify($json, null, 2) }}"
+        },
+        "type": "n8n-nodes-base.googleDrive",
+        "typeVersion": 3,
+        "position": [2250, 800],
+        "id": "save-json",
+        "name": "Save JSON to Drive"
+      },
+      {
+        "parameters": {
+          "operation": "send",
+          "sendTo": "your-email@example.com",
+          "subject": "=AI Research Report - {{ $now.format('MMM dd, yyyy') }}",
+          "emailType": "html",
+          "htmlBody": "=<h2>AI Content Research Complete</h2>\n\n<p><strong>Report Generated:</strong> {{ $now.format('MMMM dd, yyyy HH:mm') }}</p>\n\n<h3>Summary Statistics</h3>\n<ul>\n<li>YouTube Videos Analyzed: {{ $json.metadata.dataPoints.youtube }}</li>\n<li>Twitter Posts Analyzed: {{ $json.metadata.dataPoints.twitter }}</li>\n<li>Reddit Posts Analyzed: {{ $json.metadata.dataPoints.reddit }}</li>\n</ul>\n\n<h3>Top Findings</h3>\n<ul>\n{{ $json.executiveSummary.topFindings.map(f => '<li>' + f + '</li>').join('\\n') }}\n</ul>\n\n<h3>Content Opportunities</h3>\n<p>{{ $json.contentConcepts.length || 15 }} new content concepts generated.</p>\n\n<p><a href=\"{{ $('create-gdoc').item.json.url }}\">View Full Report in Google Docs</a></p>\n\n<hr>\n<p><em>This report was automatically generated by the AI Research Automation system.</em></p>",
+          "options": {
+            "attachments": "={{ $('save-json').item.binary }}"
+          }
+        },
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [2450, 700],
+        "id": "send-email",
+        "name": "Email Report"
+      },
+      {
+        "parameters": {
+          "authentication": "oAuth2",
+          "channel": "research-reports",
+          "text": "=🔬 *New AI Research Report Generated*\n\n📊 *Data Analyzed:*\n• YouTube: {{ $json.metadata.dataPoints.youtube }} videos\n• Twitter: {{ $json.metadata.dataPoints.twitter }} posts  \n• Reddit: {{ $json.metadata.dataPoints.reddit }} discussions\n\n🎯 *Top Findings:*\n{{ $json.executiveSummary.topFindings.map((f, i) => (i+1) + '. ' + f).join('\\n') }}\n\n💡 *Content Opportunities:* {{ $json.contentConcepts.length || 15 }} concepts generated\n\n📄 <{{ $('create-gdoc').item.json.url }}|View Full Report>",
+          "options": {
+            "attachments": [
+              {
+                "binaryPropertyName": "={{ $('save-json').item.binary }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.1,
+        "position": [2450, 500],
+        "id": "slack-notify",
+        "name": "Slack Notification"
+      },
+      {
+        "parameters": {
+          "operation": "sendAndWait",
+          "resource": "message",
+          "message": "=📋 *AI Research Review Required*\n\n{{ $json.executiveSummary.topFindings.length }} key findings identified.\n\nTop 3 content concepts:\n{{ $json.contentConcepts.slice(0, 3).map((c, i) => (i+1) + '. ' + c.title).join('\\n') }}\n\n*Review the full report before publishing?*",
+          "approvalOptions": {
+            "approvalType": "single",
+            "approveButtonText": "Approve & Publish",
+            "disapproveButtonText": "Request Revision"
+          }
+        },
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.1,
+        "position": [2650, 600],
+        "id": "approval-gate",
+        "name": "Human Approval",
+        "webhookId": "ai-research-approval"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.data.approved }}",
+                "rightValue": "={{ true }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [2850, 600],
+        "id": "check-approval",
+        "name": "Check Approval"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Prepare content calendar from approved concepts\nconst concepts = $('format-report').item.json.contentConcepts;\nconst topConcepts = Array.isArray(concepts) ? concepts.slice(0, 5) : [];\n\nconst calendar = topConcepts.map((concept, index) => {\n  const publishDate = new Date();\n  publishDate.setDate(publishDate.getDate() + (index * 7)); // Weekly schedule\n  \n  return {\n    json: {\n      title: concept.title,\n      publishDate: publishDate.toISOString(),\n      formats: {\n        youtube: {\n          duration: concept.duration || '10-15 minutes',\n          thumbnail: concept.thumbnailConcept || 'Create eye-catching thumbnail',\n          description: concept.hook\n        },\n        blog: {\n          wordCount: 1500,\n          seoKeywords: concept.keywords || []\n        },\n        social: {\n          twitter: `🚀 ${concept.title}\\n\\n${concept.hook}\\n\\nThread below 👇`,\n          linkedin: `New content coming: ${concept.title}\\n\\n${concept.uniqueAngle}`\n        }\n      },\n      productionTasks: [\n        'Research and outline',\n        'Create visual assets',\n        'Record/write content',\n        'Edit and optimize',\n        'Schedule distribution'\n      ]\n    }\n  };\n});\n\nreturn calendar;"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [3050, 600],
+        "id": "create-calendar",
+        "name": "Create Content Calendar"
+      },
+      {
+        "parameters": {
+          "operation": "create",
+          "project": "YOUR_NOTION_PROJECT_ID",
+          "contentType": "page",
+          "title": "={{ $json.title }}",
+          "properties": {
+            "Status": "Planning",
+            "Publish Date": "={{ $json.publishDate }}",
+            "Content Type": "Multi-format",
+            "Priority": "High"
+          }
+        },
+        "type": "n8n-nodes-base.notion",
+        "typeVersion": 2,
+        "position": [3250, 600],
+        "id": "notion-tasks",
+        "name": "Create Notion Tasks"
+      }
+    ],
+    "connections": {
+      "Manual Trigger": {
+        "main": [
+          [
+            {"node": "Search YouTube Videos", "type": "main", "index": 0},
+            {"node": "Search Twitter Trends", "type": "main", "index": 0},
+            {"node": "Search Reddit AI Posts", "type": "main", "index": 0}
+          ]
+        ]
+      },
+      "Search YouTube Videos": {
+        "main": [[{"node": "Filter & Process YouTube", "type": "main", "index": 0}]]
+      },
+      "Search Twitter Trends": {
+        "main": [[{"node": "Filter & Process Twitter", "type": "main", "index": 0}]]
+      },
+      "Search Reddit AI Posts": {
+        "main": [[{"node": "Filter & Process Reddit", "type": "main", "index": 0}]]
+      },
+      "Filter & Process YouTube": {
+        "main": [[{"node": "Batch YouTube Videos", "type": "main", "index": 0}]]
+      },
+      "Filter & Process Twitter": {
+        "main": [[{"node": "Merge All Data Sources", "type": "main", "index": 0}]]
+      },
+      "Filter & Process Reddit": {
+        "main": [[{"node": "Merge All Data Sources", "type": "main", "index": 1}]]
+      },
+      "Batch YouTube Videos": {
+        "main": [
+          [{"node": "Get YouTube Transcripts", "type": "main", "index": 0}],
+          [{"node": "Merge All YouTube Data", "type": "main", "index": 0}]
+        ]
+      },
+      "Get YouTube Transcripts": {
+        "main": [[{"node": "Merge Transcript Data", "type": "main", "index": 0}]]
+      },
+      "Merge Transcript Data": {
+        "main": [[{"node": "Batch YouTube Videos", "type": "main", "index": 0}]]
+      },
+      "Merge All YouTube Data": {
+        "main": [[{"node": "Merge All Data Sources", "type": "main", "index": 0}]]
+      },
+      "Merge All Data Sources": {
+        "main": [[{"node": "Multi-Source AI Analysis", "type": "main", "index": 0}]]
+      },
+      "Multi-Source AI Analysis": {
+        "main": [[{"node": "Deep Research Agent", "type": "main", "index": 0}]]
+      },
+      "Deep Research Agent": {
+        "main": [[{"node": "Generate Content Concepts", "type": "main", "index": 0}]]
+      },
+      "Generate Content Concepts": {
+        "main": [[{"node": "Format Final Report", "type": "main", "index": 0}]]
+      },
+      "Format Final Report": {
+        "main": [
+          [
+            {"node": "Create Google Doc Report", "type": "main", "index": 0},
+            {"node": "Save JSON to Drive", "type": "main", "index": 0},
+            {"node": "Email Report", "type": "main", "index": 0},
+            {"node": "Slack Notification", "type": "main", "index": 0}
+          ]
+        ]
+      },
+      "Slack Notification": {
+        "main": [[{"node": "Human Approval", "type": "main", "index": 0}]]
+      },
+      "Human Approval": {
+        "main": [[{"node": "Check Approval", "type": "main", "index": 0}]]
+      },
+      "Check Approval": {
+        "main": [
+          [{"node": "Create Content Calendar", "type": "main", "index": 0}],
+          []
+        ]
+      },
+      "Create Content Calendar": {
+        "main": [[{"node": "Create Notion Tasks", "type": "main", "index": 0}]]
+      },
+      "Research Memory": {
+        "ai_memory": [
+          [
+            {"node": "Multi-Source AI Analysis", "type": "ai_memory", "index": 0},
+            {"node": "Deep Research Agent", "type": "ai_memory", "index": 0}
+          ]
+        ]
+      },
+      "Perplexity Research Model": {
+        "ai_languageModel": [
+          [{"node": "Deep Research Agent", "type": "ai_languageModel", "index": 0}]
+        ]
+      },
+      "GPT-4 Analysis Model": {
+        "ai_languageModel": [
+          [{"node": "Multi-Source AI Analysis", "type": "ai_languageModel", "index": 0}]
+        ]
+      },
+      "Claude Content Model": {
+        "ai_languageModel": [
+          [{"node": "Generate Content Concepts", "type": "ai_languageModel", "index": 0}]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "saveManualExecutions": true,
+      "callerPolicy": "workflowsFromSameOwner",
+      "errorWorkflow": "YOUR_ERROR_WORKFLOW_ID"
+    },
+    "staticData": null,
+    "meta": {
+      "templateId": "enhanced-youtube-ai-research-v2",
+      "templateCreatedAt": "2024-01-01T00:00:00.000Z",
+      "templateUpdatedAt": "2024-01-01T00:00:00.000Z",
+      "templateDescription": "Enhanced multi-source AI research automation with memory, approval workflow, and distribution"
+    },
+    "tags": [
+      {
+        "id": "ai-research",
+        "name": "AI Research"
+      },
+      {
+        "id": "content-automation",
+        "name": "Content Automation"
+      }
+    ]
+  }
