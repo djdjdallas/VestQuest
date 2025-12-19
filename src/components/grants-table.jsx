@@ -53,7 +53,6 @@ export function GrantsTable({ grants = [] }) {
         // Refresh the page to update the grants list
         window.location.reload();
       } catch (error) {
-        console.error("Error deleting grant:", error);
         toast.error(error.message || "Failed to delete grant");
       } finally {
         setLoading(false);

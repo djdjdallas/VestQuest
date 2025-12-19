@@ -106,7 +106,6 @@ export function VestingTimeline() {
         upcoming.sort((a, b) => a.date - b.date);
         setUpcomingEvents(upcoming);
       } catch (err) {
-        console.error("Error fetching vesting data:", err);
         setError(err.message);
       } finally {
         setLoading(false);

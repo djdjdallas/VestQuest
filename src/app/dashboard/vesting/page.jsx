@@ -92,7 +92,6 @@ export default function VestingPage() {
       // Calculate totals and upcoming events
       calculateTotals(processedGrants);
     } catch (err) {
-      console.error("Error fetching grants:", err);
       setError(err.message);
       toast.error("Failed to load vesting data. Please try again.");
     } finally {
@@ -246,7 +245,6 @@ export default function VestingPage() {
 
       toast.success("Vesting data exported successfully");
     } catch (err) {
-      console.error("Error exporting data:", err);
       toast.error("Failed to export vesting data");
     } finally {
       setExporting(false);

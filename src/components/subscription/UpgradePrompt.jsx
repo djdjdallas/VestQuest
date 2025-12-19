@@ -84,7 +84,6 @@ export function UpgradePrompt({ feature, requiredTier, isOpen, onClose, isTrial,
       // Redirect to checkout
       router.push(url);
     } catch (error) {
-      console.error("Error creating checkout session:", error);
       toast({
         title: "Checkout Error",
         description: "Unable to start checkout process. Please try again later.",

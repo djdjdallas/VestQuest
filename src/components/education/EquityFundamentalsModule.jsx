@@ -293,13 +293,11 @@ export function EquityFundamentalsModule() {
           const data = await courseModulesService.getModuleByTitle("Equity Fundamentals");
           setModuleData(data);
         } catch (dbErr) {
-          console.warn("Could not fetch module data from database, using fallback data:", dbErr.message);
           // If database fetch fails, use the fallback data
           setModuleData(fallbackModuleData);
         }
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching module data:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -423,7 +421,6 @@ export function EquityFundamentalsModule() {
       // Alert user that the course has been reset
       alert("Course progress has been reset. You can now start from the beginning.");
     } catch (err) {
-      console.error("Error resetting progress:", err);
       alert("There was an error resetting your progress. Please try again later.");
     }
   };

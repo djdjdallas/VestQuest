@@ -127,7 +127,6 @@ export default function SettingsPage() {
 
         // For now, notification settings are mocked - in real app, fetch from DB
       } catch (err) {
-        console.error("Error fetching user data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -166,7 +165,6 @@ export default function SettingsPage() {
 
       toast.success("Profile updated successfully");
     } catch (err) {
-      console.error("Error updating profile:", err);
       toast.error(err.message || "Failed to update profile");
     } finally {
       setSaving(false);
@@ -190,7 +188,6 @@ export default function SettingsPage() {
 
       toast.success("Tax settings updated successfully");
     } catch (err) {
-      console.error("Error updating tax settings:", err);
       toast.error(err.message || "Failed to update tax settings");
     } finally {
       setSaving(false);
@@ -205,7 +202,6 @@ export default function SettingsPage() {
       // For now, we'll just show a success message
       toast.success("Notification settings updated successfully");
     } catch (err) {
-      console.error("Error updating notifications:", err);
       toast.error(err.message || "Failed to update notification settings");
     } finally {
       setSaving(false);
@@ -218,7 +214,6 @@ export default function SettingsPage() {
       await supabase.auth.signOut();
       router.push("/login");
     } catch (err) {
-      console.error("Error signing out:", err);
       toast.error("Failed to sign out. Please try again.");
     }
   };

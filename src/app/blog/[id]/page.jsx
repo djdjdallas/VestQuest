@@ -53,11 +53,8 @@ export default function BlogPostPage() {
         setLoading(true);
         setError(null);
         
-        console.log("Fetching blog post with ID:", id);
-        
         // Check if ID is numeric or needs conversion
         const postId = isNaN(id) ? id : parseInt(id, 10);
-        console.log("Using post ID (after conversion if needed):", postId);
 
         // Try to fetch by ID first - removed bio and avatar_url fields from author query
         let { data, error } = await supabase
@@ -75,7 +72,6 @@ export default function BlogPostPage() {
           
         // If no result found by ID, try using the id as slug
         if (!data && (error || error?.code === 'PGRST116')) {
-          console.log("No post found by ID, trying slug instead");
           const { data: slugData, error: slugError } = await supabase
             .from("blog_posts")
             .select(`
@@ -90,23 +86,18 @@ export default function BlogPostPage() {
             .single();
             
           if (slugData) {
-            console.log("Found post by slug");
             data = slugData;
             error = slugError;
           }
         }
 
         if (error) {
-          console.error("Supabase error:", error);
           throw error;
         }
-        
+
         if (!data) {
-          console.error("No data found for ID:", postId);
           throw new Error("Blog post not found");
         }
-        
-        console.log("Blog post data:", data);
 
         setPost(data);
 
@@ -135,8 +126,6 @@ export default function BlogPostPage() {
           setRelatedPosts(relatedData || []);
         }
       } catch (error) {
-        console.error("Error fetching blog post:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
         setError("Unable to load the blog post. Please try again later.");
         toast.error("Failed to load blog post");
       } finally {
@@ -164,7 +153,7 @@ export default function BlogPostPage() {
         toast.success("Link copied to clipboard!");
       }
     } catch (error) {
-      console.error("Error sharing:", error);
+      // Sharing failed silently
     }
   };
 

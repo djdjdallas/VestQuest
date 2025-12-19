@@ -75,7 +75,6 @@ export function withSubscriptionCheck(requiredFeature, handler) {
       // If we got here, the user has access to the feature, so call the handler
       return handler(req, { ...params, userId });
     } catch (error) {
-      console.error("Error checking subscription:", error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500 }
@@ -156,7 +155,6 @@ export function withSubscriptionTier(requiredTier, handler) {
       // If we got here, the user has the required tier, so call the handler
       return handler(req, { ...params, userId });
     } catch (error) {
-      console.error("Error checking subscription tier:", error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500 }

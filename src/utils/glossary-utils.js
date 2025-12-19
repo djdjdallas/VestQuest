@@ -144,7 +144,6 @@ export async function loadGlossaryTerms(supabase) {
     
     return termSet;
   } catch (err) {
-    console.error('Error loading glossary terms:', err);
     return new Set();
   }
 }

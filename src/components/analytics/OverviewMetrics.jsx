@@ -329,7 +329,7 @@ function generateUpcomingEventsFromGrants(grants = []) {
         }
       }
     } catch (err) {
-      console.error("Error processing grant for vesting events:", err);
+      // Failed to process grant for vesting events
     }
   });
 

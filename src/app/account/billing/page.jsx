@@ -70,13 +70,12 @@ export default function BillingPage() {
           .maybeSingle();
 
         if (error) {
-          console.error("Error fetching subscription details:", error);
           return;
         }
 
         setSubscriptionDetails(data);
       } catch (error) {
-        console.error("Error in fetchSubscriptionDetails:", error);
+        // Failed to fetch subscription details
       } finally {
         setIsLoading(false);
       }
@@ -143,7 +142,6 @@ export default function BillingPage() {
 
       setSubscriptionDetails(data);
     } catch (error) {
-      console.error("Error cancelling subscription:", error);
       toast({
         title: "Error",
         description: "Failed to cancel subscription. Please try again later.",
@@ -171,7 +169,6 @@ export default function BillingPage() {
       // In a real implementation, this would redirect to Stripe's billing portal
       router.push(url);
     } catch (error) {
-      console.error("Error accessing billing portal:", error);
       toast({
         title: "Error",
         description: "Failed to access billing portal. Please try again later.",

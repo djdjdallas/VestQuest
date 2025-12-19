@@ -95,7 +95,6 @@ export function FinancialProfileForm({ onSubmit, initialData }) {
         onSubmit(values);
       }
     } catch (error) {
-      console.error("Error saving financial profile:", error);
       alert("Failed to save financial profile: " + error.message);
     } finally {
       setLoading(false);

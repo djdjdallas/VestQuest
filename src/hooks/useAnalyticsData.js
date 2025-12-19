@@ -23,7 +23,7 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
   const [rawData, setRawData] = useState({ grants: [], scenarios: [] });
   const [error, setError] = useState(null);
   const supabase = createClient();
-  
+
   // Process analytics data using memoization to avoid unnecessary recalculations
   const analytics = useMemo(() => {
     if (rawData.grants.length === 0) {
@@ -42,22 +42,19 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
         portfolioHistory: [],
       };
     }
-    
+
     const result = processAnalyticsData(
       rawData.grants,
       rawData.scenarios,
       timeframe,
       companyFilter
     );
-    
-    // Debug logging for vesting forecast
-    console.log("Analytics processed - vesting forecast:", result.vestingForecast);
-    
+
     // Ensure vestingForecast is always defined
     if (!result.vestingForecast) {
       result.vestingForecast = [];
     }
-    
+
     return result;
   }, [rawData, timeframe, companyFilter]);
 
@@ -114,36 +111,36 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
       if (format === 'csv') {
         // Generate CSV for main metrics
         const csvRows = [];
-        
+
         // Add headers
         csvRows.push([
           'Metric', 'Value'
         ].join(','));
-        
+
         // Add summary metrics
         Object.entries(exportData.summary).forEach(([key, value]) => {
           csvRows.push([
-            key, 
+            key,
             typeof value === 'number' ? value : `"${value}"`
           ].join(','));
         });
-        
+
         // Add distribution data
         csvRows.push(['\nDistribution by Grant Type'].join(','));
         csvRows.push(['Type', 'Value'].join(','));
         exportData.distribution.byGrantType.forEach(item => {
           csvRows.push([`"${item.name}"`, item.value].join(','));
         });
-        
+
         csvRows.push(['\nDistribution by Company'].join(','));
         csvRows.push(['Company', 'Value'].join(','));
         exportData.distribution.byCompany.forEach(item => {
           csvRows.push([`"${item.name}"`, item.value].join(','));
         });
-        
+
         // Convert to CSV string
         const csvContent = csvRows.join('\n');
-        
+
         // Create and download file
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -158,7 +155,7 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
       } else {
         // Default JSON export
         const jsonData = JSON.stringify(exportData, null, 2);
-        
+
         // Create and download file
         const blob = new Blob([jsonData], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -174,7 +171,6 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
 
       toast.success(`Analytics data exported successfully as ${format.toUpperCase()}`);
     } catch (err) {
-      console.error("Error exporting data:", err);
       toast.error("Failed to export analytics data");
     }
   }, [analytics, grants, timeframe, companyFilter]);
@@ -182,7 +178,7 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
   // Fetch data from Supabase
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchAnalyticsData = async () => {
       try {
         setLoading(true);
@@ -206,22 +202,20 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
             .select("*")
             .eq("user_id", user.id)
         ]);
-        
+
         // Check for errors
         if (grantsResponse.error) throw grantsResponse.error;
         if (scenariosResponse.error) throw scenariosResponse.error;
-        
+
         const grantsData = grantsResponse.data || [];
         const scenariosData = scenariosResponse.data || [];
-        
+
         if (isMounted) {
           setGrants(grantsData);
           setScenarios(scenariosData);
           setRawData({ grants: grantsData, scenarios: scenariosData });
-          // Analytics processing happens in the useMemo hook now
         }
       } catch (err) {
-        console.error("Error fetching analytics data:", err);
         if (isMounted) {
           setError(err.message);
           toast.error("Failed to load analytics data. Please try again.");
@@ -232,7 +226,7 @@ export const useAnalyticsData = (timeframe, companyFilter) => {
     };
 
     fetchAnalyticsData();
-    
+
     // Cleanup function to prevent state updates if the component unmounts
     return () => {
       isMounted = false;

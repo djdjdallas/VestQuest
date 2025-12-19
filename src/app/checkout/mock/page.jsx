@@ -94,7 +94,6 @@ export default function MockCheckoutPage() {
         router.push("/dashboard");
       }, 3000);
     } catch (error) {
-      console.error("Error processing checkout:", error);
       toast({
         title: "Checkout failed",
         description:

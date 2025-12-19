@@ -20,7 +20,6 @@ export function useCalculator() {
         setCalculationResults(results);
         return results;
       } catch (error) {
-        console.error("Tax calculation error:", error);
         throw error;
       } finally {
         setIsLoading(false);

@@ -47,19 +47,13 @@ export function LoginForm({ className, ...props }) {
     try {
       if (isLogin) {
         // Login process
-        console.log("Starting login process");
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        console.log("Login response:", {
-          hasUser: !!data?.user,
-          hasError: !!error,
-        });
 
         if (error) throw error;
 
-        console.log("Successful login, redirecting to dashboard");
         // Force a HARD navigation
         window.location.href = "/dashboard";
       } else {
@@ -96,9 +90,8 @@ export function LoginForm({ className, ...props }) {
             });
 
           if (profileError) {
-            console.error("Error creating profile:", profileError);
-            // We won't throw here since the user was created successfully
-            // Just log it and continue
+            // Profile creation failed but user was created successfully
+            // Continue without throwing
           }
 
           setSuccess(
@@ -117,7 +110,6 @@ export function LoginForm({ className, ...props }) {
         }
       }
     } catch (error) {
-      console.error("Auth error:", error);
       setError(error.message);
     } finally {
       setLoading(false);

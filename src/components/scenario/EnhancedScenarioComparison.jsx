@@ -615,8 +615,7 @@ export function EnhancedScenarioComparison({ scenarios = [] }) {
           scenarios={validScenarios}
           timelineData={timelineData}
           onExportComplete={(format) => {
-            console.log(`Exported in ${format} format`);
-            // Add any additional actions after export
+            // Export completed successfully
           }}
           trigger={
             <Button variant="outline" size="sm">

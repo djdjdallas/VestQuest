@@ -106,7 +106,6 @@ export default function BlogPage() {
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
-      console.error("Error fetching posts:", error);
       setError("Unable to load blog posts. Please try again later.");
       toast.error("Failed to load blog posts");
     } finally {
@@ -125,7 +124,6 @@ export default function BlogPage() {
       if (error) throw error;
       setCategories(data || []);
     } catch (error) {
-      console.error("Error fetching categories:", error);
       // Don't show error for categories as it's not critical
     }
   }, [supabase]);

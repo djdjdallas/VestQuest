@@ -126,17 +126,7 @@ export default function GrantDetailsPage({ params }) {
           currentValue,
           returnPercentage,
         });
-
-        console.log("Vesting calculation details:", {
-          grant: parsedGrant,
-          vestedShares,
-          vestedPercent,
-          exerciseCost,
-          currentValue,
-          returnPercentage,
-        });
       } catch (error) {
-        console.error("Error fetching grant:", error);
         setError(error.message || "Failed to load grant details");
       } finally {
         setLoading(false);
@@ -163,7 +153,6 @@ export default function GrantDetailsPage({ params }) {
         toast.success("Grant deleted successfully");
         router.push("/dashboard/grants");
       } catch (error) {
-        console.error("Error deleting grant:", error);
         toast.error(error.message || "Failed to delete grant");
       }
     }
@@ -239,7 +228,6 @@ export default function GrantDetailsPage({ params }) {
     try {
       return format(new Date(dateString), "MMMM d, yyyy");
     } catch (error) {
-      console.error("Date formatting error:", error);
       return "Invalid date";
     }
   };

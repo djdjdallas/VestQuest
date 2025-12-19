@@ -505,8 +505,7 @@ export function UnifiedCalculator() {
       
       setDecisionFactors(factorScores);
     } catch (error) {
-      console.error("Calculation error:", error);
-      // Handle error state
+      // Calculation error - results will remain null
     } finally {
       setLoading(false);
     }

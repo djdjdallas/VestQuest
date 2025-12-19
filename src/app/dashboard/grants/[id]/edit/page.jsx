@@ -60,7 +60,6 @@ export default function EditGrantPage({ params }) {
 
         setGrant(data);
       } catch (error) {
-        console.error("Error fetching grant:", error);
         setError(error.message || "Failed to load grant");
       } finally {
         setLoading(false);
@@ -88,7 +87,6 @@ export default function EditGrantPage({ params }) {
       router.push("/dashboard/grants");
       router.refresh();
     } catch (error) {
-      console.error("Error updating grant:", error);
       toast.error(error.message || "Failed to update grant");
     } finally {
       setSaving(false);

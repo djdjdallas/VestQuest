@@ -48,8 +48,7 @@ export function SubscriptionProvider({ children }) {
           .limit(1);
 
         // If the table doesn't exist yet, default to BASIC tier with trial
-        if (tableError && tableError.code === "42P01") { // PostgreSQL error code for undefined_table
-          console.log("Table 'user_subscriptions' does not exist yet. Using basic tier with trial.");
+        if (tableError && tableError.code === "42P01") {
           setSubscription(prev => ({
             ...prev,
             tier: SUBSCRIPTION_TIERS.BASIC,
@@ -71,8 +70,7 @@ export function SubscriptionProvider({ children }) {
           .limit(1)
           .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no records found
 
-        if (error && error.code !== "PGRST116") { // PGRST116 is the error when no rows returned
-          console.error("Error fetching subscription:", error);
+        if (error && error.code !== "PGRST116") {
           setSubscription(prev => ({
             ...prev,
             tier: SUBSCRIPTION_TIERS.BASIC,
@@ -115,7 +113,6 @@ export function SubscriptionProvider({ children }) {
           }));
         }
       } catch (err) {
-        console.error("Error in subscription fetch:", err);
         setSubscription(prev => ({
           ...prev,
           tier: SUBSCRIPTION_TIERS.BASIC,
@@ -149,7 +146,6 @@ export function SubscriptionProvider({ children }) {
           )
           .subscribe();
       } catch (error) {
-        console.log("Channel subscription error:", error);
         // The channel fails if the table doesn't exist - not critical
       }
     }

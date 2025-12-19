@@ -72,7 +72,6 @@ export function UserProgressProvider({ children }) {
             
           if (error && error.code !== 'PGRST116') {
             // PGRST116 is "no rows returned" - not an error for us
-            console.error('Error fetching user progress:', error);
           }
           
           if (data) {
@@ -99,7 +98,7 @@ export function UserProgressProvider({ children }) {
           }
         }
       } catch (err) {
-        console.error('Error in UserProgressProvider initialization:', err);
+        // Failed to initialize user progress
       }
     }
     
@@ -143,7 +142,7 @@ export function UserProgressProvider({ children }) {
           .maybeSingle();
           
         if (checkError) {
-          console.error('Error checking user progress:', checkError);
+          // Failed to check user progress
         }
         
         if (data) {
@@ -154,7 +153,7 @@ export function UserProgressProvider({ children }) {
             .eq('user_id', session.user.id);
             
           if (error) {
-            console.error('Error updating user progress:', error);
+            // Failed to update user progress
           }
         } else {
           // Insert new record
@@ -163,7 +162,7 @@ export function UserProgressProvider({ children }) {
             .insert(progressData);
             
           if (error) {
-            console.error('Error inserting user progress:', error);
+            // Failed to insert user progress
           }
         }
       }
@@ -171,7 +170,7 @@ export function UserProgressProvider({ children }) {
       setLastSynced(new Date());
       setHasChanges(false);
     } catch (err) {
-      console.error('Error saving user progress:', err);
+      // Failed to save user progress
     } finally {
       setIsSaving(false);
     }

@@ -56,7 +56,6 @@ export default function EditScenarioPage({ params }) {
 
         setScenario(data);
       } catch (error) {
-        console.error("Error fetching scenario:", error);
         setError(error.message || "Failed to load scenario");
       } finally {
         setLoading(false);
@@ -84,7 +83,6 @@ export default function EditScenarioPage({ params }) {
       router.push("/dashboard/scenarios");
       router.refresh();
     } catch (error) {
-      console.error("Error updating scenario:", error);
       toast.error(error.message || "Failed to update scenario");
     } finally {
       setSaving(false);

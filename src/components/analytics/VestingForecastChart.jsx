@@ -1,6 +1,6 @@
 // src/components/analytics/VestingForecastChart.jsx
 
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Card,
   CardHeader,
@@ -26,12 +26,6 @@ import { COLORS, customTooltipFormatter } from "@/utils/format-utils";
  * @param {Array} grants - All equity grants to derive companies
  */
 export const VestingForecastChart = ({ data, grants }) => {
-  // Add debug logging
-  useEffect(() => {
-    console.log("VestingForecastChart data:", data);
-    console.log("VestingForecastChart grants:", grants);
-  }, [data, grants]);
-  
   // Get unique company names from grants
   const uniqueCompanies = grants
     .filter((g) => g && g.company_name)

@@ -15,7 +15,6 @@ async function handler(req, { userId }) {
       // Additional data...
     });
   } catch (error) {
-    console.error("Error exporting scenario:", error);
     return NextResponse.json(
       { error: "Failed to export scenario" },
       { status: 500 }

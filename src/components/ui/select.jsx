@@ -11,16 +11,6 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = React.forwardRef(({ className, ...props }, ref) => {
-  // Add a debug effect to check what's happening
-  React.useEffect(() => {
-    const trigger = document.querySelector("[data-radix-select-trigger]");
-    if (trigger) {
-      const computedStyle = window.getComputedStyle(trigger);
-      console.log("Select trigger color:", computedStyle.color);
-      console.log("Select trigger background:", computedStyle.backgroundColor);
-    }
-  }, []);
-
   return (
     <SelectPrimitive.Value
       ref={ref}

@@ -57,7 +57,6 @@ export default function GrantsPage() {
 
       setGrants(grantsWithVesting || []);
     } catch (error) {
-      console.error("Error fetching grants:", error);
       setError(error.message);
       toast.error("Failed to load grants. Please try again.");
     } finally {
@@ -109,7 +108,6 @@ export default function GrantsPage() {
         // Show success toast notification
         toast.success("Grant deleted successfully");
       } catch (error) {
-        console.error("Error deleting grant:", error);
         toast.error(error.message || "Failed to delete grant");
       }
     },
@@ -151,7 +149,6 @@ export default function GrantsPage() {
       // Show toast notification
       toast.success("Vesting schedule exported successfully");
     } catch (error) {
-      console.error("Error exporting vesting schedule:", error);
       toast.error("Failed to export vesting schedule");
     }
   }, []);
@@ -196,7 +193,6 @@ export default function GrantsPage() {
       // Show toast notification
       toast.success("Equity grants exported successfully");
     } catch (error) {
-      console.error("Error exporting grants data:", error);
       toast.error("Failed to export grants data");
     }
   }, [grants]);

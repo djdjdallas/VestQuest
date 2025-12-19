@@ -88,30 +88,21 @@ export function ScenarioForm({
   
   // Handle grant selection - define before it's used
   const handleGrantChange = useCallback((grantId) => {
-    console.log("handleGrantChange called with grantId:", grantId);
-    
     if (!grantId) {
-      console.log("No grantId provided, returning early");
       return;
     }
 
-    // Find the selected grant
-    console.log("Looking for grant in grants array:", grants);
     const selectedGrant = grants.find((grant) => grant.id === grantId);
-    console.log("Found selected grant:", selectedGrant);
-    
+
     if (selectedGrant) {
-      console.log("Setting selectedGrantData state");
       setSelectedGrantData(selectedGrant);
       setFormValuesChanged(false);
 
       // Default to including all shares from the grant
-      console.log("Setting shares_included value:", selectedGrant.shares);
       form.setValue("shares_included", selectedGrant.shares);
 
       // Set default share price based on multiplier
       const newPrice = selectedGrant.current_fmv * priceMultiplier;
-      console.log("Setting share_price value:", newPrice);
       form.setValue("share_price", parseFloat(newPrice.toFixed(2)));
 
       // Update scenario name with the grant and price info
@@ -122,26 +113,20 @@ export function ScenarioForm({
 
       // Only auto-update the name if it's empty or follows our naming pattern
       if (!currentName || currentName.includes("Exit at $")) {
-        console.log("Setting scenario name:", suggestedName);
         form.setValue("name", suggestedName);
       }
-    } else {
-      console.warn("Selected grant not found in grants array for ID:", grantId);
     }
   }, [grants, form, priceMultiplier]);
 
   // Initialize selected grant if default value is provided
   useEffect(() => {
     if (initialData?.grant_id && grants?.length > 0) {
-      console.log("Found initial grant_id:", initialData.grant_id);
       const grant = grants.find(g => g.id === initialData.grant_id);
       if (grant) {
-        console.log("Setting selectedGrantData from initialData");
         setSelectedGrantData(grant);
       }
     } else if (grants?.length > 0 && grants[0]?.id) {
       // Auto-select first grant for better UX
-      console.log("Auto-selecting first grant:", grants[0]);
       handleGrantChange(grants[0].id);
       form.setValue("grant_id", grants[0].id);
     }
@@ -261,7 +246,6 @@ export function ScenarioForm({
                     className="flex h-10 w-full items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm"
                     value={field.value || ""}
                     onChange={(e) => {
-                      console.log("Native select onChange:", e.target.value);
                       field.onChange(e.target.value);
                       handleGrantChange(e.target.value);
                     }}

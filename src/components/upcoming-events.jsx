@@ -103,7 +103,6 @@ export function UpcomingEventsTab({
         allUpcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
         setUpcomingEvents(allUpcomingEvents);
       } catch (err) {
-        console.error("Error fetching grants:", err);
         toast.error("Failed to load vesting data. Please try again.");
       } finally {
         setLoading(false);
@@ -150,7 +149,6 @@ export function UpcomingEventsTab({
 
       toast.success("Events exported successfully");
     } catch (err) {
-      console.error("Error exporting events:", err);
       toast.error("Failed to export events");
     } finally {
       setExporting(false);

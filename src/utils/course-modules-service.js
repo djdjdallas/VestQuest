@@ -35,7 +35,6 @@ export class CourseModulesService {
     const { data, error } = await query;
 
     if (error) {
-      console.error("Error fetching course modules:", error);
       throw error;
     }
 
@@ -56,7 +55,6 @@ export class CourseModulesService {
       .single();
 
     if (moduleError) {
-      console.error("Error fetching module:", moduleError);
       throw moduleError;
     }
 
@@ -72,7 +70,6 @@ export class CourseModulesService {
       .order("order_index");
 
     if (lessonsError) {
-      console.error("Error fetching lessons:", lessonsError);
       throw lessonsError;
     }
 
@@ -86,7 +83,6 @@ export class CourseModulesService {
           .order("order_index");
 
         if (quizError) {
-          console.error("Error fetching quiz questions:", quizError);
           throw quizError;
         }
 
@@ -127,7 +123,6 @@ export class CourseModulesService {
         .eq("published", true);
 
       if (error) {
-        console.error("Error searching for module:", error);
         throw error;
       }
 
@@ -168,7 +163,6 @@ export class CourseModulesService {
         .single();
         
       if (progressError && progressError.code !== 'PGRST116') {
-        console.error("Error fetching user progress:", progressError);
         throw progressError;
       }
       
@@ -221,16 +215,14 @@ export class CourseModulesService {
         .eq("user_id", userId);
         
       if (error) {
-        console.error("Error resetting module progress:", error);
         throw error;
       }
-      
-      return { 
-        success: true, 
-        message: "Module progress has been reset successfully" 
+
+      return {
+        success: true,
+        message: "Module progress has been reset successfully"
       };
     } catch (err) {
-      console.error("Error in resetModuleProgress:", err);
       throw err;
     }
   }

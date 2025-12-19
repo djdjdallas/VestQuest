@@ -331,7 +331,7 @@ export function InteractiveEducation({
       // Mark this concept as viewed in user progress
       markConceptViewed('equity_calculator');
     } catch (error) {
-      console.error("Error calculating results:", error);
+      // Calculation error - results will remain null
     }
   };
 

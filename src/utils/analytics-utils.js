@@ -151,25 +151,17 @@ export const processAnalyticsData = (
   });
 
   // Sort and process forecasts (limit to 12 months)
-  // Debug the vesting forecast before sorting
-  console.log("Raw vesting forecast before sorting:", vestingForecast);
-  
-  // Handle potential empty arrays and ensure proper date parsing
   const sortedVestingForecast = (vestingForecast || [])
     .sort((a, b) => {
-      // Parse date strings properly
       try {
         const dateA = a.dateKey ? new Date(a.dateKey.substring(0, 4), parseInt(a.dateKey.substring(5)) - 1) : new Date(a.date);
         const dateB = b.dateKey ? new Date(b.dateKey.substring(0, 4), parseInt(b.dateKey.substring(5)) - 1) : new Date(b.date);
         return dateA - dateB;
       } catch (e) {
-        console.error("Error sorting dates:", e);
         return 0;
       }
     })
     .slice(0, 12);
-  
-  console.log("Sorted vesting forecast:", sortedVestingForecast);
 
   const sortedValueForecast = (valueForecast || [])
     .sort((a, b) => {
@@ -178,7 +170,6 @@ export const processAnalyticsData = (
         const dateB = b.dateKey ? new Date(b.dateKey.substring(0, 4), parseInt(b.dateKey.substring(5)) - 1) : new Date(b.date);
         return dateA - dateB;
       } catch (e) {
-        console.error("Error sorting dates:", e);
         return 0;
       }
     })
@@ -232,18 +223,15 @@ export const generateVestingForecast = (
 
   const today = new Date();
   if (!grant.vesting_end_date) {
-    console.log(`Skipping grant ${grant.id || 'unknown'}: missing vesting_end_date`);
     return;
   }
 
   const endDate = new Date(grant.vesting_end_date);
   if (isNaN(endDate.getTime())) {
-    console.log(`Skipping grant ${grant.id || 'unknown'}: invalid vesting_end_date format ${grant.vesting_end_date}`);
     return;
   }
-  
+
   if (today > endDate) {
-    console.log(`Skipping grant ${grant.id || 'unknown'}: vesting already completed (end date: ${endDate.toISOString()}, today: ${today.toISOString()})`);
     return;
   }
 
@@ -273,21 +261,15 @@ export const generateVestingForecast = (
     const forecastDate = addMonths(today, i);
     if (forecastDate > endDate) break;
 
-    // Debug for vesting calculation
-    console.log(`Calculating vesting for grant ${grant.id || 'unknown'} for date ${forecastDate}`);
-    
     const vestedAtStart = calculateVestedShares(grant, today);
     const vestedAtForecast = calculateVestedShares(grant, forecastDate);
     const newlyVestedShares = Math.max(0, vestedAtForecast - vestedAtStart);
-    
-    console.log(`Vested at start: ${vestedAtStart}, Vested at forecast: ${vestedAtForecast}, Newly vested: ${newlyVestedShares}`);
 
     // Force at least one entry if this is our only grant
     const forceEntry = i === 0 && vestingForecast.length === 0 && grant.shares > 0;
     
     // Skip if no shares vest in this period (unless forcing an entry)
     if (newlyVestedShares <= 0 && !forceEntry) {
-      console.log('No newly vested shares in this period, skipping');
       continue;
     }
     
@@ -323,7 +305,6 @@ export const generateVestingForecast = (
       }
       
       vestingForecast.push(entry);
-      console.log(`Added new vesting forecast entry for ${formattedDate}: ${sharesToVest} shares`);
     }
 
     // Update value forecast
@@ -348,7 +329,6 @@ export const generateVestingForecast = (
         entry[grant.company_name] = value;
       }
       valueForecast.push(entry);
-      console.log(`Added new value forecast entry for ${formattedDate}: ${value} value`);
     }
   }
 };

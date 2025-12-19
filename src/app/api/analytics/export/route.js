@@ -72,7 +72,6 @@ async function handler(req, { userId }) {
       },
     });
   } catch (error) {
-    console.error("Error exporting analytics data:", error);
     return NextResponse.json(
       { error: "Failed to export analytics data" },
       { status: 500 }

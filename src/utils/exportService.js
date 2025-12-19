@@ -70,7 +70,6 @@ export class ScenarioExportService {
         saveAs(blob, filename);
         resolve();
       } catch (error) {
-        console.error("Error exporting CSV:", error);
         reject(error);
       }
     });
@@ -156,7 +155,6 @@ export class ScenarioExportService {
 
         resolve();
       } catch (error) {
-        console.error("Error exporting JSON:", error);
         reject(error);
       }
     });

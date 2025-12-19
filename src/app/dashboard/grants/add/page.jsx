@@ -42,7 +42,6 @@ export default function AddGrantPage() {
           router.push("/login");
         }
       } catch (error) {
-        console.error("Error checking authentication:", error);
         toast.error("Authentication error. Please log in again.");
         router.push("/login");
       } finally {
@@ -140,12 +139,6 @@ export default function AddGrantPage() {
 
       const vestedShares = calculateVestedShares(testGrant);
 
-      // Console log to verify calculations are working
-      console.log("Pre-submission verification:", {
-        processedData,
-        calculatedVestedShares: vestedShares,
-      });
-
       // Insert the grant into the database
       const { data, error } = await supabase
         .from("equity_grants")
@@ -161,7 +154,6 @@ export default function AddGrantPage() {
       router.push("/dashboard/grants");
       router.refresh();
     } catch (error) {
-      console.error("Error creating grant:", error);
       toast.error(error.message || "Failed to create grant");
     } finally {
       setLoading(false);

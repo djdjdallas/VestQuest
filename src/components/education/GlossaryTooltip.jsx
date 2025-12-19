@@ -91,7 +91,6 @@ export function GlossaryTooltip({
           setTermData(fallback);
         }
       } catch (err) {
-        console.error("Error fetching glossary term:", err);
         setError(err.message);
       } finally {
         setLoading(false);

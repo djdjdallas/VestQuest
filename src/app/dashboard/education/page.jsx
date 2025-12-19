@@ -192,7 +192,7 @@ export default function Education() {
             );
           }
         } catch (err) {
-          console.error("Error fetching user education progress:", err);
+          // Failed to fetch user progress
         }
       }
     };
@@ -252,7 +252,7 @@ export default function Education() {
           if (insertError) throw insertError;
         }
       } catch (err) {
-        console.error("Error saving user education progress:", err);
+        // Failed to save user progress
       }
     }
   }, [
@@ -397,14 +397,7 @@ export default function Education() {
           setCurrentLearningPath(recommendedPath);
         }
 
-        // Log for debugging
-        console.log("Education data loaded:", {
-          content: processedContent.length,
-          terms: processedTerms.length,
-          paths: processedPaths.length,
-        });
       } catch (err) {
-        console.error("Error fetching education data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -747,7 +740,6 @@ export default function Education() {
                                       moduleId = courseModules.id;
                                     }
                                   } catch (dbErr) {
-                                    console.warn("Could not fetch module from database, using fallback ID:", dbErr.message);
                                     // Continue with fallback ID
                                   }
                                   
@@ -756,7 +748,6 @@ export default function Education() {
                                     const { default: courseModulesService } = await import('@/utils/course-modules-service');
                                     await courseModulesService.resetModuleProgress(moduleId);
                                   } catch (serviceErr) {
-                                    console.warn("Could not use course module service:", serviceErr.message);
                                     // Continue with manual reset
                                   }
                                   
@@ -788,7 +779,6 @@ export default function Education() {
                                   // Navigate to the course
                                   window.location.href = "/dashboard/education/equity-fundamentals";
                                 } catch (err) {
-                                  console.error("Error resetting course progress:", err);
                                   alert("There was an error resetting your progress. Please try again later.");
                                 }
                               }}

@@ -128,7 +128,6 @@ export const apiClient = {
 
       return data;
     } catch (error) {
-      console.error("API request error:", error);
       throw error;
     }
   },

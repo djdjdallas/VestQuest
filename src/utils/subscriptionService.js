@@ -19,8 +19,6 @@ export const createCheckoutSession = async (tier, billingCycle, user) => {
     // This would typically call a serverless function or API endpoint
     // that creates a Stripe checkout session
 
-    console.log(`Creating checkout for ${tier} (${billingCycle}) for user ${user.id}`);
-    
     // Check if this is from a trial by looking at existing subscription data
     const { data: existingSubscription } = await supabase
       .from('user_subscriptions')
@@ -60,7 +58,6 @@ export const createCheckoutSession = async (tier, billingCycle, user) => {
     return { url };
     */
   } catch (error) {
-    console.error('Error creating checkout session:', error);
     throw new Error('Failed to create checkout session');
   }
 };
@@ -102,7 +99,6 @@ export const handleCheckoutSuccess = async (sessionId) => {
     // Now create a subscription record in our database
     return await createOrUpdateSubscription(sessionData);
   } catch (error) {
-    console.error('Error handling checkout success:', error);
     throw new Error('Failed to verify subscription');
   }
 };
@@ -153,13 +149,11 @@ export const createOrUpdateSubscription = async (subscriptionData) => {
       .single();
 
     if (error) {
-      console.error('Error creating subscription record:', error);
       throw new Error('Failed to create subscription record');
     }
 
     return data;
   } catch (error) {
-    console.error('Error in createOrUpdateSubscription:', error);
     throw error;
   }
 };
@@ -185,7 +179,6 @@ export const cancelSubscription = async (userId) => {
 
     // PLACEHOLDER: Cancel subscription with payment processor
     // In production, this would call Stripe's API to cancel the subscription
-    console.log(`Canceling subscription ${subscription.payment_id}`);
 
     /* IMPLEMENTATION WITH STRIPE WOULD LOOK LIKE:
     const response = await fetch('/api/cancel-subscription', {
@@ -217,7 +210,6 @@ export const cancelSubscription = async (userId) => {
       throw new Error('Failed to update subscription status');
     }
   } catch (error) {
-    console.error('Error canceling subscription:', error);
     throw error;
   }
 };
@@ -243,7 +235,6 @@ export const getManagementPortalUrl = async (userId) => {
 
     // PLACEHOLDER: Get management portal URL from payment processor
     // In production, this would call Stripe's API to create a portal session
-    console.log(`Getting portal for customer with subscription ${subscription.payment_id}`);
 
     /* IMPLEMENTATION WITH STRIPE WOULD LOOK LIKE:
     const response = await fetch('/api/create-portal-session', {
@@ -269,7 +260,6 @@ export const getManagementPortalUrl = async (userId) => {
       url: `/account/billing?subscription=${subscription.id}`,
     };
   } catch (error) {
-    console.error('Error getting management portal URL:', error);
     throw error;
   }
 };
@@ -310,13 +300,11 @@ export const createTrialSubscription = async (userId, tier = SUBSCRIPTION_TIERS.
       .single();
       
     if (error) {
-      console.error('Error creating trial subscription:', error);
       throw new Error('Failed to create trial subscription');
     }
-    
+
     return data;
   } catch (error) {
-    console.error('Error in createTrialSubscription:', error);
     throw error;
   }
 };

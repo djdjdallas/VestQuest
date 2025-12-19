@@ -19,13 +19,11 @@ export async function generateClaudeInsights(grants, financialData = {}, marketD
     // Check for API key
     const apiKey = process.env.NEXT_PUBLIC_CLAUDE_API_KEY;
     if (!apiKey) {
-      console.warn("Claude API key not configured");
       return fallbackInsights(grants, financialData);
     }
-    
+
     // Due to CORS restrictions, we'll simulate Claude response in client-side code
     // In a production app, you would make this call from a serverless function or API route
-    console.log("Would use Claude API with key:", apiKey.substring(0, 10) + "..." + apiKey.substring(apiKey.length - 5));
     
     // Prepare prompt with user data
     const prompt = createInsightsPrompt(grants, financialData, marketData);
@@ -49,7 +47,6 @@ export async function generateClaudeInsights(grants, financialData = {}, marketD
       powered_by_claude: true
     };
   } catch (error) {
-    console.error("Error generating Claude insights:", error);
     return fallbackInsights(grants, financialData);
   }
 }
@@ -123,14 +120,6 @@ function createInsightsPrompt(grants, financialData, marketData) {
   const totalValue = grants.reduce((sum, grant) => sum + (grant.vested_shares || 0) * (grant.current_fmv || 0), 0);
   
   // In a real implementation, this would generate a prompt for the Claude API
-  console.log("Would create a prompt with:", {
-    grants: grants.length,
-    financialData: Object.keys(financialData).length,
-    totalShares,
-    vestedShares,
-    totalValue
-  });
-  
   return "Simulated prompt - not actually sent to Claude API in this demo";
 }
 

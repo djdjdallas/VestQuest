@@ -79,7 +79,7 @@ export default function AnalyticsPage() {
       upcomingEvents: [],
     },
     error,
-    exportData = () => console.log("Export function not implemented"),
+    exportData = () => {},
     companyOptions = [{ value: "all", label: "All Companies" }],
   } = useAnalyticsData(timeframe, companyFilter);
 

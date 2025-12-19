@@ -95,7 +95,6 @@ export function ScenarioExportDialog({
         onExportComplete(exportFormat);
       }
     } catch (error) {
-      console.error("Export error:", error);
       toast.error(`Failed to export: ${error.message}`);
     } finally {
       setLoading(false);

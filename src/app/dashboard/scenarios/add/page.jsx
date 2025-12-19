@@ -32,9 +32,7 @@ export default function AddScenarioPage() {
 
   // Get default values for the form based on available grants - memoized to prevent recalculation
   const defaultValues = useMemo(() => {
-    console.log("Computing defaultValues, grants:", grants);
     const defaultGrant = grants?.length > 0 ? grants[0] : null;
-    console.log("Selected defaultGrant:", defaultGrant);
 
     const values = {
       name: defaultGrant
@@ -52,8 +50,7 @@ export default function AddScenarioPage() {
       grant_id: defaultGrant ? defaultGrant.id : "",
       shares_included: defaultGrant ? defaultGrant.shares : 1000,
     };
-    
-    console.log("Computed form default values:", values);
+
     return values;
   }, [grants]);
 
@@ -61,30 +58,17 @@ export default function AddScenarioPage() {
   const handlePreview = useCallback(
     (formData) => {
       try {
-        console.log("handlePreview called with formData:", formData);
-        
         if (!formData.grant_id) {
-          console.log("No grant_id in formData, skipping preview calculation");
           setPreviewData(null);
           return;
         }
 
-        console.log("Looking for grant with id:", formData.grant_id, "in grants:", grants);
         const selectedGrant = grants?.find((g) => g.id === formData.grant_id);
-        
+
         if (!selectedGrant) {
-          console.warn("Selected grant not found!", formData.grant_id);
           setPreviewData(null);
           return;
         }
-
-        console.log("Found selectedGrant:", selectedGrant);
-        console.log("Calculating scenario with params:", {
-          grant: selectedGrant,
-          price: formData.share_price,
-          shares: formData.shares_included,
-          name: formData.name
-        });
 
         const result = calculateScenarioResult(
           selectedGrant,
@@ -93,10 +77,8 @@ export default function AddScenarioPage() {
           formData.name
         );
 
-        console.log("Preview calculation result:", result);
         setPreviewData(result);
       } catch (err) {
-        console.error("Error calculating preview:", err);
         setPreviewData(null);
       }
     },
@@ -151,7 +133,6 @@ export default function AddScenarioPage() {
         // Redirect to the scenario details page
         router.push(`/dashboard/scenarios/${data[0].id}`);
       } catch (error) {
-        console.error("Error creating scenario:", error);
         toast.error(error.message || "Failed to create scenario");
       } finally {
         setLoading(false);

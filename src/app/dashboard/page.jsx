@@ -266,7 +266,6 @@ export default function DashboardPage() {
           ...(notificationsData || []),
         ]);
       } catch (err) {
-        console.error("Error fetching dashboard data:", err);
         setError(err.message);
         toast.error("Failed to load dashboard data. Please try again.");
       } finally {
@@ -351,7 +350,6 @@ export default function DashboardPage() {
       }
     } catch (err) {
       toast.error("Failed to mark notifications as read");
-      console.error(err);
     }
   };
 

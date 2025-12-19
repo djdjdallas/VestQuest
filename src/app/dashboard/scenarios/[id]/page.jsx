@@ -120,7 +120,6 @@ export default function ScenarioDetailsPage() {
             .single();
 
           if (grantError) {
-            console.error("Error fetching grant:", grantError);
             // Don't throw - we can still show scenario without grant
           } else {
             setGrant(grantData);
@@ -150,7 +149,6 @@ export default function ScenarioDetailsPage() {
           }
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
         setError(error.message || "Failed to load scenario details");
       } finally {
         setLoading(false);
@@ -172,7 +170,6 @@ export default function ScenarioDetailsPage() {
       toast.success("Scenario deleted successfully");
       router.push("/dashboard/scenarios");
     } catch (error) {
-      console.error("Error deleting scenario:", error);
       toast.error(error.message || "Failed to delete scenario");
     } finally {
       setShowDeleteDialog(false);

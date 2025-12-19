@@ -59,7 +59,6 @@ export function PersonalizedAdvisor({ grants = [], userFinancialData = null }) {
         setUsingAI(adviceResult.powered_by_claude || adviceResult.insights.length > 2);
         setAdvice(adviceResult);
       } catch (error) {
-        console.error("Error generating advice:", error);
         // Set fallback advice if generation fails
         setAdvice({
           insights: [

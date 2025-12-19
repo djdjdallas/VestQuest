@@ -112,7 +112,6 @@ export default function UpcomingEventsPage() {
         events.sort((a, b) => new Date(a.date) - new Date(b.date));
         setUpcomingEvents(events);
       } catch (err) {
-        console.error("Error fetching upcoming events:", err);
         setError(err.message);
         toast.error("Failed to load upcoming events. Please try again.");
       } finally {
@@ -194,7 +193,6 @@ export default function UpcomingEventsPage() {
 
       toast.success("Events exported successfully");
     } catch (err) {
-      console.error("Error exporting events:", err);
       toast.error("Failed to export events");
     } finally {
       setExporting(false);

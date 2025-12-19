@@ -19,10 +19,6 @@ export const ScenariosTab = ({ analytics, scenarios }) => {
   const hasScenarios =
     analytics.comparisonData && analytics.comparisonData.length > 0;
 
-  // Debug: log comparison data
-  console.log("Scenario comparison data:", analytics.comparisonData);
-  console.log("Original scenarios data:", scenarios);
-
   if (!hasScenarios) {
     return (
       <Card>

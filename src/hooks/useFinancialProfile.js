@@ -32,7 +32,6 @@ export function useFinancialProfile() {
 
       // If the table doesn't exist or there's a PostgreSQL error, provide default data
       if (error && (error.code === "PGRST116" || error.code === "42P01")) {
-        console.log("Financial profiles table not found or empty, using default profile");
         // Return default financial profile data
         data = {
           income: 120000,
@@ -44,17 +43,14 @@ export function useFinancialProfile() {
           riskTolerance: "medium",
           age: 30
         };
-        error = null; // Clear the error since we're handling it
+        error = null;
       } else if (error) {
-        // For other errors, log them but don't crash
-        console.warn("Error fetching financial profile:", error);
-        data = {}; // Return empty object instead of null
+        data = {};
       }
 
       setProfile(data || null);
       return data;
     } catch (err) {
-      console.error("Error fetching financial profile:", err);
       setError(err.message);
       return null;
     } finally {
@@ -87,7 +83,6 @@ export function useFinancialProfile() {
       setProfile(data);
       return data;
     } catch (err) {
-      console.error("Error updating financial profile:", err);
       setError(err.message);
       throw err;
     } finally {
@@ -100,10 +95,10 @@ export function useFinancialProfile() {
   }, []);
 
   return {
-    financialProfile: profile, // Add this alias for consistent naming
-    profile, // Keep this for backward compatibility
-    isLoading: loading, // Improve naming for consistency
-    loading, // Keep this for backward compatibility
+    financialProfile: profile,
+    profile,
+    isLoading: loading,
+    loading,
     error,
     fetchProfile,
     updateProfile,

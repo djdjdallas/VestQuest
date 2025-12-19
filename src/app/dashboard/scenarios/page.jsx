@@ -117,7 +117,6 @@ export default function ScenariosPage() {
         setScenarios(processedScenarios);
         applyFilters(processedScenarios, filters);
       } catch (error) {
-        console.error("Error fetching scenarios:", error);
         setError(error.message);
       } finally {
         setLoading(false);
@@ -222,7 +221,6 @@ export default function ScenariosPage() {
       );
       toast.success("Scenario deleted successfully");
     } catch (error) {
-      console.error("Error deleting scenario:", error);
       toast.error(error.message || "Failed to delete scenario");
     }
   };
@@ -246,7 +244,6 @@ export default function ScenariosPage() {
 
       toast.success(archive ? "Scenario archived" : "Scenario unarchived");
     } catch (error) {
-      console.error("Error updating scenario:", error);
       toast.error(error.message || "Failed to update scenario");
     }
   };
@@ -273,7 +270,6 @@ export default function ScenariosPage() {
 
       toast.success(`${selectedScenarios.length} scenarios deleted`);
     } catch (error) {
-      console.error("Error bulk deleting scenarios:", error);
       toast.error(error.message || "Failed to delete scenarios");
     }
   };
